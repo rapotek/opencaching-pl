@@ -10,23 +10,43 @@
 
 ?>
 {
-    markerFactory: function( type, id, ocData ){
-      var iconFeature = new ol.Feature({
+    markerFactory: function( map, type, id, ocData ){
+        var iconFeature = new ol.Feature({
             geometry: new ol.geom.Point(ol.proj.fromLonLat([parseFloat(ocData.lon), parseFloat(ocData.lat)])),
             ocData: {
-              markerType: type,
-              markerId: id
+                markerType: type,
+                markerId: id,
+                logIcon: ocData.log_icon
             }
-          });
+        });
 
-          iconFeature.setStyle(new ol.style.Style({
+        var mgr = this;
+        iconFeature.setStyle(function(feature, resolution) {
+            return mgr.getIconStyle(map, feature);
+        });
+        return iconFeature;
+    },
+
+    getIconStyle: function(map, icon) {
+        var featureStyles = [];
+        var scale;
+        if (map.getView().getZoom() <= 8) {
+            scale = 0.6;
+        } else if (map.getView().getZoom() <= 13) {
+            scale = 0.7;
+        } else {
+            scale = 1;
+        }
+        featureStyles.push(new ol.style.Style({
             image: new ol.style.Icon( {
-              anchor: [0.5, 46],
-              anchorXUnits: 'fraction',
-              anchorYUnits: 'pixels',
-              src: ocData.icon,
+                anchor: [0.5, 0.5],
+                anchorXUnits: 'fraction',
+                anchorYUnits: 'fraction',
+                src: icon.get('ocData').logIcon,
+                imgSize: [ 16 ,16 ],
+                scale: scale,
             })
-          }));
-      return iconFeature;
+        }));
+        return featureStyles;
     },
 }

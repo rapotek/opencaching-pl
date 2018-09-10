@@ -16,7 +16,10 @@ class CacheMarkerModel extends AbstractMarkerModelBase
     public $link;
     public $name;
     public $username;
-
+    public $cacheType;
+    public $cacheStatus;
+    public $isFound;
+    public $isOwner;
 
     /**
      * Creates marker model from Geocache model
@@ -42,6 +45,11 @@ class CacheMarkerModel extends AbstractMarkerModelBase
         $this->link = $c->getCacheUrl();
         $this->name = $c->getCacheName();
         $this->username = $c->getOwner()->getUserName();
+        $this->cacheType = $c->getCacheType();
+        $this->cacheStatus = $c->getStatus();
+        $this->isFound = $c->foundByUser($user);
+        $this->isOwner =
+            ($user != null && $user->getUserId() == $c->getOwner()->getUserId());
     }
 
     /**
@@ -58,4 +66,3 @@ class CacheMarkerModel extends AbstractMarkerModelBase
     }
 
 }
-

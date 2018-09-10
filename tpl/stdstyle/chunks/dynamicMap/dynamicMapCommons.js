@@ -281,7 +281,7 @@ function loadMarkers(params) {
   var featuresArr = [];
   Object.keys(params.markerData).forEach(function(markerType) {
     params.markerData[markerType].forEach(function(markerData, id){
-      featuresArr.push(params.markerMgr[markerType].markerFactory(markerType, id, markerData));
+      featuresArr.push(params.markerMgr[markerType].markerFactory(params.map, markerType, id, markerData));
     });
   });
 
@@ -350,6 +350,3 @@ function loadMarkers(params) {
   });
 
 }
-
-
-
