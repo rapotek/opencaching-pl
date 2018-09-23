@@ -11,7 +11,7 @@ use Utils\Cache\OcMemCache;
 class GuideController extends BaseController
 {
     /** Maxiumum length of guide description passed to marker model */
-    const MAX_DSCR_LEN = 100;
+    const MAX_DSCR_LEN = 200;
 
     public function __construct(){
         parent::__construct();
@@ -61,9 +61,12 @@ class GuideController extends BaseController
                 $marker->lon = $row['longitude'];
                 $marker->userId = $row['user_id'];
                 $marker->username = $row['username'];
-                $marker->userDesc = $this->getTruncatedDescription(
-                    $row['description']
-                );
+                $text = $row['description'];
+                if (mb_strlen($text) > self::MAX_DSCR_LEN) {
+                    $text = mb_strcut($text, 0, self::MAX_DSCR_LEN);
+                    $text .= '...';
+                }
+                $marker->userDesc = nl2br($text);
                 $marker->recCount = $row['recomendations'];
                 return $marker;
             }
@@ -78,25 +81,5 @@ class GuideController extends BaseController
 
         $this->view->buildView();
 
-    }
-
-    /**
-     * Truncates description to be at least MAX_DSCR_LEN, ending it with
-     * ellipsis '(...)' if description is longer than MAX_DSCR_LEN.
-     *
-     * @param string $description Description to truncate
-     *
-     * @return string truncated description
-     */
-    private function getTruncatedDescription($description)
-    {
-        $result = "";
-        if (mb_strlen($description) > self::MAX_DSCR_LEN) {
-            $result = mb_substr($description, 0, self::MAX_DSCR_LEN - 5)
-                . "(...)";
-        } else {
-            $result = mb_substr($description, 0, self::MAX_DSCR_LEN);
-        }
-        return $result;
     }
 }

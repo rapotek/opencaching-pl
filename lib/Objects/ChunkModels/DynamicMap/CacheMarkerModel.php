@@ -3,6 +3,7 @@ namespace lib\Objects\ChunkModels\DynamicMap;
 
 use lib\Objects\GeoCache\GeoCache;
 use lib\Objects\User\User;
+use Utils\Text\Formatter;
 
 /**
  * This is model of geocache marker
@@ -16,8 +17,22 @@ class CacheMarkerModel extends AbstractMarkerModelBase
     public $link;
     public $name;
     public $username;
+    public $userProfile;
 
-
+    public $isEvent;
+    public $eventStartDate;
+    public $size;
+    public $rating;
+    public $founds;
+    public $notFounds;
+    public $ratingVotes;
+    public $recommendations;
+    public $titledDesc;
+    public $isStandingOut;
+    public $powerTrailName;
+    public $powerTrailIcon;
+    public $powerTrailUrl;
+    
     /**
      * Creates marker model from Geocache model
      * @param GeoCache $c
@@ -42,6 +57,33 @@ class CacheMarkerModel extends AbstractMarkerModelBase
         $this->link = $c->getCacheUrl();
         $this->name = $c->getCacheName();
         $this->username = $c->getOwner()->getUserName();
+        $this->userProfile = $c->getOwner()->getProfileUrl();
+
+        $this->isEvent= $c->isEvent();
+        if ($this->isEvent) {
+            $this->eventStartDate = Formatter::date($c->getDatePlaced());
+        }
+        $this->size = tr($c->getSizeTranslationKey());
+        $this->ratingVotes = $c->getRatingVotes();
+        $this->rating = (
+            $this->ratingVotes < 3
+            ? tr('not_available')
+            : $c->getRatingDesc()
+        );
+        $this->founds = $c->getFounds();
+        $this->notFounds = $c->getNotFounds();
+        $this->recommendations = $c->getRecommendations();
+        $this->isTitled = $c->isTitled();
+        if ($c->isTitled() ) {
+            global $titled_cache_period_prefix; //TODO: move it to the ocConfig
+            $this->titledDesc = tr($titled_cache_period_prefix.'_titled_cache');
+        }
+        $this->isStandingOut = ($this->titledDesc || $this->recommendations);
+        if ($c->isPowerTrailPart()) {
+            $this->powerTrailName = $c->getPowerTrail()->getName();
+            $this->powerTrailIcon = $c->getPowerTrail()->getFootIcon();
+            $this->powerTrailUrl = $c->getPowerTrail()->getPowerTrailUrl();
+        }
     }
 
     /**
@@ -50,12 +92,19 @@ class CacheMarkerModel extends AbstractMarkerModelBase
      */
     public function checkMarkerData()
     {
-        return parent::checkMarkerData() &&
-        isset($this->wp) &&
-        isset($this->link) &&
-        isset($this->name) &&
-        isset($this->username);
+        return parent::checkMarkerData()
+        && isset($this->wp)
+        && isset($this->link)
+        && isset($this->name)
+        && isset($this->username)
+        && isset($this->userProfile)
+        && isset($this->isEvent)
+        && isset($this->size)
+        && isset($this->founds)
+        && isset($this->notFounds)
+        && isset($this->ratingVotes)
+        && isset($this->recommendations)
+        ;
     }
 
 }
-
