@@ -667,26 +667,61 @@ class GeoCache extends GeoCacheCommons
         return tr(self::CacheRatingTranslationKey($this->ratingId));
     }
 
-    public function getCacheIcon(User $forUser=null)
+    /**
+     * Computes the cache current log status for given user, based on the user
+     * log entries.
+     *
+     * @param \lib\Objects\User\User $forUser a user to compute current log
+     *     status for, may be null
+     *
+     * @return int current log status
+     */
+    public function getLogStatus(User $forUser=null)
     {
         $logStatus = null;
-        $isOwner = false;
         if (!is_null($forUser)) {
-            $logsCount = $this->getLogsCountByType($forUser, array(GeoCacheLog::LOGTYPE_FOUNDIT, GeoCacheLog::LOGTYPE_DIDNOTFIND));
-            if (isset($logsCount[GeoCacheLog::LOGTYPE_FOUNDIT]) && $logsCount[GeoCacheLog::LOGTYPE_FOUNDIT]>0) {
+            $logsCount = $this->getLogsCountByType(
+                $forUser,
+                array(
+                    GeoCacheLog::LOGTYPE_FOUNDIT,
+                    GeoCacheLog::LOGTYPE_DIDNOTFIND
+                )
+            );
+            if (
+                isset($logsCount[GeoCacheLog::LOGTYPE_FOUNDIT])
+                && $logsCount[GeoCacheLog::LOGTYPE_FOUNDIT]>0
+            ) {
                 $logStatus = GeoCacheLog::LOGTYPE_FOUNDIT;
-            } else if (isset($logsCount[GeoCacheLog::LOGTYPE_DIDNOTFIND]) && $logsCount[GeoCacheLog::LOGTYPE_DIDNOTFIND]>0) {
+            } else if (
+                isset($logsCount[GeoCacheLog::LOGTYPE_DIDNOTFIND])
+                && $logsCount[GeoCacheLog::LOGTYPE_DIDNOTFIND]>0
+            ) {
                 $logStatus = GeoCacheLog::LOGTYPE_DIDNOTFIND;
             }
-            $isOwner = ($this->getOwnerId() == $forUser->getUserId());
         }
+        return $logStatus;
+    }
 
+    /**
+     * Checks if the cache has been found by given user
+     *
+     * @param \lib\Objects\User\User $user a user to check
+     *
+     * @return boolean true if user found the cache, false otherwise
+     */
+    public function isFoundByUser(User $user=null)
+    {
+        return ($this->getLogStatus($user) == GeoCacheLog::LOGTYPE_FOUNDIT);
+    }
+
+    public function getCacheIcon(User $forUser=null)
+    {
         return self::CacheIconByType(
             $this->cacheType,
             $this->status,
-            $logStatus,
+            $this->getLogStatus($forUser),
             false,
-            $isOwner
+            (!is_null($forUser) && $this->getOwnerId() == $forUser->getUserId())
         );
     }
 

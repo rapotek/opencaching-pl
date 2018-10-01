@@ -113,14 +113,15 @@ class CacheLogController extends BaseController
 
                 $marker = new LogMarkerModel();
 
-                $marker->log_link = GeoCacheLog::getLogUrlByLogId($row['id']);
-                $marker->log_text = $row['text'];
-                $marker->log_icon = GeoCacheLog::GetIconForType($row['type']);
-                $marker->log_typeName = tr(GeoCacheLog::getLogTypeTplKeys(
+                $marker->logLink = GeoCacheLog::getLogUrlByLogId($row['id']);
+                $marker->logText = $row['text'];
+                $marker->logType = $row['type'];
+                $marker->logIcon = GeoCacheLog::GetIconForType($row['type']);
+                $marker->logTypeName = tr(GeoCacheLog::getLogTypeTplKeys(
                     $row['cacheType'])[$row['type']]);
 
-                $marker->log_username = $usernameDict[$row['logAuthor']];
-                $marker->log_date = $row['date'];
+                $marker->logUsername = $usernameDict[$row['logAuthor']];
+                $marker->logDate = $row['date'];
 
                 $marker->icon = GeoCache::CacheIconByType($row['cacheType'], $row['status']);
                 $marker->lat = $row['latitude'];

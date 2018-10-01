@@ -8,6 +8,7 @@ use \ReflectionClass;
  */
 abstract class AbstractMarkerModelBase
 {
+    public $id;             // id of marker
     public $lat;            // lat. of marker
     public $lon;            // lon. of marker
     public $icon;           // icon of marker
@@ -28,7 +29,12 @@ abstract class AbstractMarkerModelBase
      */
     public function checkMarkerData()
     {
-        return isset($this->lat) && isset($this->lon) && isset($this->icon);
+        return true
+        && isset($this->id)
+        && isset($this->lat)
+        && isset($this->lon)
+        && isset($this->icon)
+        ;
     }
 
 }

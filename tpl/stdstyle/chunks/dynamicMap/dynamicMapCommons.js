@@ -284,51 +284,82 @@ function loadMarkers(params) {
         return;
     }
 
-  // extract markers from params
-  var featuresArr = [];
-  Object.keys(params.markerData).forEach(function(markerType) {
-    params.markerData[markerType].forEach(function(markerData, id){
-      featuresArr.push(params.markerMgr[markerType].markerFactory(markerType, id, markerData));
+    //add background layer
+    var backgroundLayer = new ol.layer.Tile({
+        source: new ol.source.TileImage({
+            url: "{x: {x}, y: {y}, z: {z}}",
+            tileLoadFunction: function(imageTile, src) {
+                var im = imageTile.getImage();
+                im.src="/images/map_markers_okapi/background_layer.png";
+            }
+        }),
+        opacity: 0,
+        zIndex: 50,
+        ocLayerName: 'oc__background',
     });
-  });
 
-  var markersLayer = new ol.layer.Vector ({
-    zIndex: 100,
-    visible: true,
-    source: new ol.source.Vector({ features: featuresArr }),
-    ocLayerName: 'oc_markers',
+    params.map.addLayer(backgroundLayer);
+
+    // extract markers from params
+    var featuresArr = [];
+    Object.keys(params.markerData).forEach(function(markerType) {
+        params.markerData[markerType].forEach(function(markerData, id) {
+            featuresArr.push(params.markerMgr[markerType].markerFactory(
+                params.map, markerType, id, markerData
+            ));
+        });
     });
 
-  var ext = markersLayer.getSource().getExtent();
+    var markersLayer = new ol.layer.Vector ({
+        zIndex: 100,
+        visible: true,
+        source: new ol.source.Vector({ features: featuresArr }),
+        ocLayerName: 'oc_markers',
+    });
 
-  //load markers layer
-  params.map.addLayer( markersLayer );
+    var ext = markersLayer.getSource().getExtent();
 
-  //zoom map to see all markers
-  if(!params.forceMapZoom && !ol.extent.isEmpty(ext)){
-    // there are markers
-    params.map.getView().fit(ext);
-  }
+    //load markers layer
+    params.map.addLayer( markersLayer );
 
+    //zoom map to see all markers
+    if(!params.forceMapZoom && !ol.extent.isEmpty(ext)){
+        // there are markers
+        params.map.getView().fit(ext);
+    }
 
-  // popup init.
-  var popup = new ol.Overlay({
-    element: $('<div class="dynamicMap_mapPopup"></div>')[0],
-    positioning: 'bottom-center',
-    stopEvent: true,
-    insertFirst: false,
-    offset: [0, -50],
-    autoPan: true,
-    autoPanAnimation: {
-      duration: 250
-    },
-  });
+    params["foregroundSource"] = new ol.source.Vector();
+  
+    var foregroundLayer = new ol.layer.Vector ({
+        zIndex: 500,
+        visible: true,
+        source: params["foregroundSource"],
+        ocLayerName: 'oc__foreground',
+    });
+    
+    params.map.addLayer(foregroundLayer);
+    
+    // popup init.
+    var popup = new ol.Overlay({
+        element: $('<div class="dynamicMap_mapPopup"></div>')[0],
+        positioning: 'bottom-center',
+        stopEvent: true,
+        insertFirst: false,
+        offset: [0, -50],
+        autoPan: true,
+        autoPanAnimation: {
+            duration: 250
+        },
+        offsetYAdjusted: false,
+    });
 
-  params.map.addOverlay(popup);
+    params.map.addOverlay(popup);
 
     params.map.on('click', function(evt) {
-        // clears the featureIndex if it was set previously
+        // clear the featureIndex if it was set previously
         popup.unset('featureIndex', true);
+        // clear the popup vertical adjustment info if it was set previously
+        popup.set('offsetYAdjusted', false);
 
         var features = [];
         var fCoords;
@@ -362,6 +393,52 @@ function loadMarkers(params) {
         }
     });
 
+    params.map.on('moveend', function(evt) {
+        var zoom = params.map.getView().getZoom();
+        var opacity = 1 - (127 - ((zoom >= 13) ? 15 : Math.max(0, zoom * 2 - 14))) / 127;
+        backgroundLayer.setOpacity(opacity);
+    });
+}
+
+function getPopupOffsetY(features) {
+    var result;
+
+    features.forEach(function(feature) {
+        var ocData = feature.get("ocData");
+
+        var ocMarker = feature.get('ocMarker');
+        if (
+            ocMarker != undefined
+            && typeof(ocMarker['currentStyle']) != "undefined"
+        ) {
+            if (typeof(ocMarker.currentStyle['popupOffsetY']) === "undefined") {
+                ocMarker.computePopupOffsetY();
+            }
+            if (typeof(ocMarker.currentStyle['popupOffsetY']) !== "undefined") {
+                if (
+                    result == undefined
+                    || result > ocMarker.currentStyle.popupOffsetY
+                ) {
+                    result = ocMarker.currentStyle.popupOffsetY;
+                }
+            }
+        } else {
+            var im;
+            var s = feature.getStyle();
+            if (typeof(s["getImage"]) == "function") {
+                im = s.getImage();
+            }
+            if (im && im instanceof ol.style.Icon) {
+                var anc = im.getAnchor();
+                var offset = -(anc[1] * im.getScale()) - 2;
+                if (result == undefined || result > offset) {
+                    result = offset;
+                }
+            }
+        }
+    });
+
+    return result;
 }
 
 /**
@@ -373,24 +450,52 @@ function loadMarkers(params) {
  */
 function switchPopupContent(popup, params, features, forward) {
     var i = popup.get('featureIndex');
+    var oldFeature;
     if (i == undefined) {
         i = 0;
     } else {
+        oldFeature = features[i];
         // (+/-1) modulo features.length, negative value workaround
         i = (
                 ((forward ? (i + 1) : (i - 1)) % features.length)
                 + features.length
             ) % features.length;
     }
+    
     var feature = features[i];
     var ocData = feature.get("ocData");
 
-    var im = feature.getStyle().getImage();
-    if (im && im instanceof ol.style.Icon) {
-        var anc = im.getAnchor();
-        popup.setOffset([0, -(anc[1] * im.getScale()) - 2]);
+    if (!popup.get('offsetYAdjusted')) {
+        var popupOffsetY = getPopupOffsetY(features);
+        if (popupOffsetY) {
+            popup.setOffset([0, popupOffsetY]);
+        }
+        popup.set('offsetYAdjusted', true);
     }
 
+    // move currect feature to the foreground layer, replacing the previous one
+    if (feature.getId()) {
+        var featureId = feature.getId();
+        params.map.getLayerGroup().getLayersArray().some(function(layer) {
+            if (/^oc_[^_].*/.test( layer.get('ocLayerName') )) {
+                var s = layer.getSource();
+                if (s.getFeatureById(featureId) === feature) {
+                    if (oldFeature != undefined) {
+                        var oldSource = popup.get('oldFeatureSource');
+                        if (oldSource != undefined) {
+                            params["foregroundSource"].removeFeature(oldFeature);
+                            oldSource.addFeature(oldFeature);
+                        }
+                    }
+                    s.removeFeature(feature);
+                    params["foregroundSource"].addFeature(feature);
+                    popup.set('oldFeatureSource', s);
+                    return true;
+                }
+            }
+        });
+    }
+    
     var markerType = ocData.markerType;
     var markerId = ocData.markerId;
 

@@ -224,3 +224,11 @@
     width: 1%;
     white-space: nowrap;
 }
+
+/* used in cache marker caption */
+@font-face {
+    font-family: 'Tahoma';
+    src: url('tahoma.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}

@@ -11,16 +11,16 @@
                 {{#if username}}({{username}}){{/if}}
             </div>
         </div>
-        {{#if log_link}}
+        {{#if logLink}}
         <div class="dmp-row dmp-block">
             <div class="dmp-cell dmp-log-icon">
-                <img src="{{log_icon}}" title="{{log_typeName}}" alt="{{log_typeName}}">
+                <img src="{{logIcon}}" title="{{logTypeName}}" alt="{{logTypeName}}">
             </div>
             <div class="dmp-cell">
-                <a href="{{log_link}}" class="links" target="_blank">
-                    <span class="dmp-user">{{log_username}}</span> ({{log_date}})
-                    {{#if log_text}}
-                    <div class="dmp-content">{{{log_text}}}</div>
+                <a href="{{logLink}}" class="links" target="_blank">
+                    <span class="dmp-user">{{logUsername}}</span> ({{logDate}})
+                    {{#if logText}}
+                    <div class="dmp-content">{{{logText}}}</div>
                     {{/if}}
                 </a>
             </div>

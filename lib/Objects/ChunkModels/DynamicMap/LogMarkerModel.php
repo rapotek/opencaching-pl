@@ -11,12 +11,13 @@ use Utils\Text\Formatter;
  */
 class LogMarkerModel extends CacheMarkerModel
 {
-    public $log_link = null; // if there is no link there is no log :)
-    public $log_text;
-    public $log_icon;
-    public $log_typeName;
-    public $log_username;
-    public $log_date;
+    public $logLink = null; // if there is no link there is no log :)
+    public $logText;
+    public $logIcon;
+    public $logType;
+    public $logTypeName;
+    public $logUsername;
+    public $logDate;
 
     public static function fromGeoCacheLogFactory(GeoCacheLog $log, User $user = null)
     {
@@ -29,7 +30,8 @@ class LogMarkerModel extends CacheMarkerModel
     {
         parent::importDataFromGeoCache($log->getGeoCache(), $user);
 
-        $this->log_link = $log->getLogUrl();
+        $this->id = $log->getId();
+        $this->logLink = $log->getLogUrl();
         $text = strip_tags($log->getText(),'<br><p>');
         $textLen = mb_strlen($text);
         if ($textLen > 200) {
@@ -38,11 +40,12 @@ class LogMarkerModel extends CacheMarkerModel
             $text = preg_replace('/\<[^\>]*$/', '', $text);
             $text .= '...';
         }
-        $this->log_text = $text;
-        $this->log_icon = $log->getLogIcon();
-        $this->log_typeName = tr(GeoCacheLog::typeTranslationKey($log->getType()));
-        $this->log_username = $log->getUser()->getUserName();
-        $this->log_date = Formatter::date($log->getDateCreated());
+        $this->logText = $text;
+        $this->logIcon = $log->getLogIcon();
+        $this->logType = $log->getType();
+        $this->logTypeName = tr(GeoCacheLog::typeTranslationKey($log->getType()));
+        $this->logUsername = $log->getUser()->getUserName();
+        $this->logDate = Formatter::date($log->getDateCreated());
     }
 
     /**
@@ -51,12 +54,13 @@ class LogMarkerModel extends CacheMarkerModel
      */
     public function checkMarkerData()
     {
-        return parent::checkMarkerData() &&
-        isset($this->log_link) &&
-        isset($this->log_text) &&
-        isset($this->log_icon) &&
-        isset($this->log_typeName) &&
-        isset($this->log_username) &&
-        isset($this->log_date);
+        return parent::checkMarkerData()
+        && isset($this->logLink)
+        && isset($this->logText)
+        && isset($this->logIcon)
+        && isset($this->logType)
+        && isset($this->logTypeName)
+        && isset($this->logUsername)
+        && isset($this->logDate);
     }
 }

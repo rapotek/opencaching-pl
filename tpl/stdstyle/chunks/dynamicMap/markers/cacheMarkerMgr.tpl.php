@@ -10,24 +10,10 @@
 
 ?>
 {
-    markerFactory: function( type, id, ocData ){
-      var iconFeature = new ol.Feature({
-            geometry: new ol.geom.Point(ol.proj.fromLonLat([parseFloat(ocData.lon), parseFloat(ocData.lat)])),
-            ocData: {
-              markerType: type,
-              markerId: id
-            }
-          });
-
-      iconFeature.setStyle(new ol.style.Style({
-        image: new ol.style.Icon( {
-          anchor: [0.5, 0.5],
-          anchorXUnits: 'fraction',
-          anchorYUnits: 'fraction',
-          src: ocData.icon,
-          scale: 0.6,
-        })
-      }));
-      return iconFeature;
+    markerFactory: function( map, type, id, ocData ){
+        return createOCMarkerFeature(
+            type, id, ocData, new CacheMarker(map, ocData)
+        );
     },
+
 }

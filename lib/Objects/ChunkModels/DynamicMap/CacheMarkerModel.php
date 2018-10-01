@@ -2,6 +2,7 @@
 namespace lib\Objects\ChunkModels\DynamicMap;
 
 use lib\Objects\GeoCache\GeoCache;
+use lib\Objects\GeoCache\GeoCacheLogCommons;
 use lib\Objects\User\User;
 use Utils\Text\Formatter;
 
@@ -23,6 +24,7 @@ class CacheMarkerModel extends AbstractMarkerModelBase
     public $eventStartDate;
     public $size;
     public $rating;
+    public $ratingId;
     public $founds;
     public $notFounds;
     public $ratingVotes;
@@ -32,7 +34,12 @@ class CacheMarkerModel extends AbstractMarkerModelBase
     public $powerTrailName;
     public $powerTrailIcon;
     public $powerTrailUrl;
-    
+
+    public $cacheType;
+    public $cacheStatus;
+    public $isFound;
+    public $isOwner;
+
     /**
      * Creates marker model from Geocache model
      * @param GeoCache $c
@@ -49,6 +56,7 @@ class CacheMarkerModel extends AbstractMarkerModelBase
     protected function importDataFromGeoCache(GeoCache $c, User $user=null)
     {
         // Abstract-Marker data
+        $this->id = $c->getCacheId();
         $this->icon = $c->getCacheIcon($user);
         $this->lat = $c->getCoordinates()->getLatitude();
         $this->lon = $c->getCoordinates()->getLongitude();
@@ -70,6 +78,7 @@ class CacheMarkerModel extends AbstractMarkerModelBase
             ? tr('not_available')
             : $c->getRatingDesc()
         );
+        $this->ratingId = $c->getRatingId();
         $this->founds = $c->getFounds();
         $this->notFounds = $c->getNotFounds();
         $this->recommendations = $c->getRecommendations();
@@ -84,6 +93,12 @@ class CacheMarkerModel extends AbstractMarkerModelBase
             $this->powerTrailIcon = $c->getPowerTrail()->getFootIcon();
             $this->powerTrailUrl = $c->getPowerTrail()->getPowerTrailUrl();
         }
+
+        $this->cacheType = $c->getCacheType();
+        $this->cacheStatus = $c->getStatus();
+        $this->isFound = $c->isFoundByUser($user);
+        $this->isOwner =
+            ($user != null && $user->getUserId() == $c->getOwner()->getUserId());
     }
 
     /**
@@ -103,7 +118,10 @@ class CacheMarkerModel extends AbstractMarkerModelBase
         && isset($this->founds)
         && isset($this->notFounds)
         && isset($this->ratingVotes)
+        && isset($this->ratingId)
         && isset($this->recommendations)
+        && isset($this->cacheType)
+        && isset($this->cacheStatus)
         ;
     }
 

@@ -10,7 +10,7 @@
 
 ?>
 {
-    markerFactory: function( type, id, ocData ){
+    markerFactory: function( map, type, id, ocData ){
       var iconFeature = new ol.Feature({
             geometry: new ol.geom.Point(ol.proj.fromLonLat([parseFloat(ocData.lon), parseFloat(ocData.lat)])),
             ocData: {
