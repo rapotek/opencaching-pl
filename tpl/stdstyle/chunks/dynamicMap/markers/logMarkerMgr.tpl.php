@@ -10,9 +10,9 @@
 
 ?>
 {
-    markerFactory: function( map, type, id, ocData ){
+    markerFactory: function(map, type, id, ocData, section = "_DEFAULT_" ){
         return createOCMarkerFeature(
-            type, id, ocData, new LogMarker(map, ocData)
+            type, id, ocData, new LogMarker(map, ocData), section
         );
     },
 }

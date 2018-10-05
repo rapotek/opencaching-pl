@@ -26,9 +26,20 @@ LogMarker.prototype.getLogTypeSuffix = function(type) {
     return result;
 }
 
-LogMarker.prototype.getIconFileName = function(sizePrefix, logType) {
+LogMarker.prototype.getFlagSuffix = function(flag) {
+    var result;
+    switch (flag) {
+        case 1: result = 'own'; break;
+        case 2: result = 'found'; break;
+        case 3: result = 'new';
+    }
+    return result;
+}
+
+LogMarker.prototype.getIconFileName = function(sizePrefix, logType, flag) {
     var name = sizePrefix + '_log';
     name += this.getSuffix(logType, "getLogTypeSuffix");
+    name += this.getSuffix(flag, "getFlagSuffix");
     name += ".png";
     return name;
 }
@@ -57,7 +68,8 @@ LogMarker.prototype.getMediumImage = function() {
                 src: this.iconsDir
                     + this.getIconFileName(
                         'medium',
-                        this.ocData.logType
+                        this.ocData.logType,
+                        (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
                     ),
             }),
         })
@@ -67,6 +79,10 @@ LogMarker.prototype.getMediumImage = function() {
 
 LogMarker.prototype.getLargeImage = function(showCaption) {
     result = [];
+    var caption;
+    if (showCaption) {
+        caption = this.generateCaptionStyle();
+    }
     result.push(
         new ol.style.Style({
             image: new ol.style.Icon({
@@ -77,9 +93,11 @@ LogMarker.prototype.getLargeImage = function(showCaption) {
                 src: this.iconsDir
                     + this.getIconFileName(
                         'large',
-                        this.ocData.logType
+                        this.ocData.logType,
+                        (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
                     ),
             }),
+            text: caption,
         })
     );
     return result;

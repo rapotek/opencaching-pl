@@ -12,6 +12,8 @@ use Utils\Debug\Debug;
  */
 class DynamicMapModel
 {
+    const DEFAULT_SECTION = "_DEFAULT_";
+
     private $ocConfig;
 
     /** @var Coordinates */
@@ -21,6 +23,7 @@ class DynamicMapModel
     private $mapLayerName;   // name of the default map layer
 
     private $markerModels = [];
+    private $sectionsProperties = [];
 
     public function __construct(){
 
@@ -75,11 +78,13 @@ class DynamicMapModel
             $type = $model->getMarkerTypeName();
             Debug::errorLog("Marker of $type has incomplete data!");
         }
-
-        if(!isset($this->markerModels[$type])){
-            $this->markerModels[$type] = [];
+        $section = (
+            isset($model->section) ? $model->section : self::DEFAULT_SECTION
+        );
+        if(!isset($this->markerModels[$section][$type])){
+            $this->markerModels[$section][$type] = [];
         }
-        $this->markerModels[$type][] = $model;
+        $this->markerModels[$section][$type][] = $model;
     }
 
     /**
@@ -102,8 +107,34 @@ class DynamicMapModel
         return json_encode($this->markerModels, JSON_PRETTY_PRINT);
     }
 
-    public function getMarkerTypes(){
+    public function getMarkerSections(){
         return array_keys($this->markerModels);
+    }
+
+    public function getMarkerTypes($section = null) {
+        $result = [];
+        if ($section != null) {
+            $result =
+                isset($this->markerModels[$section])
+                ? array_keys($this->markerModels[$section])
+                : [];
+        } else {
+            foreach($this->markerModels as $s) {
+                foreach($s as $markerType => $markers) {
+                    if (!in_array($markerType, $result)) {
+                        $result[] = $markerType;
+                    }
+                }
+            }
+            /*
+            // an alternative way but seems to be too complicated:
+            array_walk($this->markerModels, function($v) use (&$result) {
+                $result = array_merge($result, array_keys($v));
+            });
+            $result = array_values(array_unique($result));
+            */
+        }
+        return $result;
     }
 
     /**
@@ -142,5 +173,11 @@ class DynamicMapModel
         $this->coords = $cords;
     }
 
-}
+    public function setSectionProperties($section, $properties) {
+        $this->sectionsProperties[$section] = $properties;
+    }
 
+    public function getSectionsPropertiesJson(){
+        return json_encode($this->sectionsProperties, JSON_PRETTY_PRINT);
+    }
+}

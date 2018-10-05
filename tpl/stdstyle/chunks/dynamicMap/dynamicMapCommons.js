@@ -249,12 +249,11 @@ function cordsUnderCursorInit(params) {
   params.curPos.coordsFormat = CoordinatesUtil.FORMAT.DEG_MIN;
 
   params.map.on('pointermove', function(event) {
-
     if (!CoordinatesUtil.cmp(params.curPos.lastKnownCoords, event.coordinate)) {
       params.curPos.lastKnownCoords = event.coordinate
 
       params.curPos.positionDiv.html(
-          CoordinatesUtil.toWGS84(params.map, params.curPos.lastKnownCoords, params.curPos.coordsFormat));
+          CoordinatesUtil.toWGS84(params.map, params.curPos.lastKnownCoords, params.curPos.coordsFormat)+" ["+event.pixel[0]+","+event.pixel[1]+"]");
     }
   });
 
@@ -277,6 +276,8 @@ function cordsUnderCursorInit(params) {
 
 }
 
+// base Z index for markers layers
+var markersBaseZIndex = 100;
 
 function loadMarkers(params) {
 
@@ -300,32 +301,127 @@ function loadMarkers(params) {
 
     params.map.addLayer(backgroundLayer);
 
-    // extract markers from params
-    var featuresArr = [];
-    Object.keys(params.markerData).forEach(function(markerType) {
-        params.markerData[markerType].forEach(function(markerData, id) {
-            featuresArr.push(params.markerMgr[markerType].markerFactory(
-                params.map, markerType, id, markerData
-            ));
+    var frontViewFeatures = {};
+    var sources = {};
+    var currentZIndex = markersBaseZIndex;
+    var allExtent;
+    var renderOrderingReverse = true;
+    Object.keys(params.markerData).forEach(function(section) {
+        var featuresArr = [];
+        var props =
+            typeof(params["sectionsProperties"]) != "undefined"
+            && typeof(params["sectionsProperties"][section]) != "undefined"
+            ? params["sectionsProperties"][section]:
+            undefined;
+        var zIndex = currentZIndex;
+        if (props && typeof(props["order"]) !== "undefined") {
+            zIndex = markersBaseZIndex - parseInt(props["order"]);
+        } else {
+            currentZIndex++;
+        }
+        var visible =
+            props && typeof(props["visible"]) != "undefined"
+            ? props["visible"]
+            : true;
+        Object.keys(params.markerData[section]).forEach(function(markerType) {
+            params.markerData[section][markerType].forEach(
+                function(markerData, id) {
+                    var feature = params.markerMgr[markerType].markerFactory(
+                        params.map, markerType, id, markerData, section
+                    );
+                    if (visible) {
+                        var geom = feature.getGeometry();
+                        if (typeof(geom["getCoordinates"]) === "function") {
+                            var coords = geom.getCoordinates();
+                            var key = "" + coords[0] + "," + coords[1];
+                            var isFirst = (
+                                typeof(frontViewFeatures[key]) === "undefined"
+                            );
+                            if (
+                                !isFirst
+                                && (
+                                    renderOrderingReverse
+                                    ? frontViewFeatures[key].zIndex < zIndex
+                                    : frontViewFeatures[key].zIndex <= zIndex
+                                )
+                            ) {
+                                frontViewFeatures[key].feature.set(
+                                    "isFirst", false
+                                );
+                                isFirst = true;
+                            }
+                            if (isFirst) {
+                                feature.set("isFirst", true);
+                                frontViewFeatures[key] = {
+                                    feature: feature,
+                                    zIndex: zIndex
+                                }
+                            }
+                        }
+                    }
+                    featuresArr.push(feature);
+                }
+            );
         });
+        sources[section] = {
+            src: new ol.source.Vector({ features: featuresArr }),
+            zIndex: zIndex,
+            visible: visible
+        }
+        if (!allExtent) {
+            allExtent = sources[section].src.getExtent();
+        } else {
+            allExtent = ol.extent.extend(
+                allExtent, sources[section].src.getExtent()
+            );
+        }
     });
 
-    var markersLayer = new ol.layer.Vector ({
-        zIndex: 100,
-        visible: true,
-        source: new ol.source.Vector({ features: featuresArr }),
-        ocLayerName: 'oc_markers',
+
+    /*Object.keys(sources).forEach(function(section) {
+        var source = sources[section];
+        source.src.forEachFeature(function(f) {
+            var txt = f.getId() + '__isFirst=';
+            if (f.get('isFirst') != undefined) {
+                txt += (f.get('isFirst') ? "true" : "false")
+            } else {
+                txt += "false";
+            }
+            if (f.get('ocData') != undefined) {
+                txt += '__' + f.get('ocData').markerType;
+            }
+            if (f.get('ocMarker') != undefined) {
+                var ocData = f.get('ocMarker').ocData;
+                txt += '__' + ocData.name;
+                if (typeof(ocData["logText"]) !== "undefined") {
+                    txt += '__' + ocData.logText;
+                }
+            }
+            console.log(txt);
+        });
+    });*/
+
+    Object.keys(sources).forEach(function(section) {
+        var source = sources[section];
+        var markersLayer = new ol.layer.Vector ({
+            zIndex: source.zIndex,
+            visible: source.visible,
+            source: source.src,
+            ocLayerName: 'oc_markers_' + section,
+            renderOrder: function(f1, f2) {
+                return renderOrderingReverse
+                    ? (f1["ol_uid"] > f2["ol_uid"]) ? -1 : +(f1["ol_uid"] < f2["ol_uid"])
+                    : (f1["ol_uid"] < f2["ol_uid"]) ? -1 : +(f1["ol_uid"] > f2["ol_uid"])
+                ;
+            }
+        });
+        params.map.addLayer( markersLayer );
     });
-
-    var ext = markersLayer.getSource().getExtent();
-
-    //load markers layer
-    params.map.addLayer( markersLayer );
 
     //zoom map to see all markers
-    if(!params.forceMapZoom && !ol.extent.isEmpty(ext)){
+    if(!params.forceMapZoom && !ol.extent.isEmpty(allExtent)){
         // there are markers
-        params.map.getView().fit(ext);
+        params.map.getView().fit(allExtent);
     }
 
     params["foregroundSource"] = new ol.source.Vector();
@@ -338,7 +434,7 @@ function loadMarkers(params) {
     });
     
     params.map.addLayer(foregroundLayer);
-    
+
     // popup init.
     var popup = new ol.Overlay({
         element: $('<div class="dynamicMap_mapPopup"></div>')[0],
@@ -397,6 +493,42 @@ function loadMarkers(params) {
         var zoom = params.map.getView().getZoom();
         var opacity = 1 - (127 - ((zoom >= 13) ? 15 : Math.max(0, zoom * 2 - 14))) / 127;
         backgroundLayer.setOpacity(opacity);
+    });
+
+    params.map.reorderSections = function (orders) {
+        params.map.getLayerGroup().getLayersArray().forEach(function(layer) {
+            var match = /^oc_markers_(.+)/.exec(layer.get('ocLayerName'));
+            if (match != null) {
+                var section= match[1];
+                if (orders[section] !== undefined) {
+                    layer.setZIndex(markersBaseZIndex - orders[section]);
+                }
+            }
+        });
+        params.map.renderSync();
+    };
+
+    params.map.toggleSectionVisibility = function(section) {
+        params.map.getLayerGroup().getLayersArray().some(function(layer) {
+            var match = /^oc_markers_(.+)/.exec(layer.get('ocLayerName'));
+            if (match != null && match[1] == section) {
+                layer.setVisible(!layer.getVisible());
+                return true;
+            }
+        });
+    };
+
+    params.map.getViewport().addEventListener('contextmenu', function(evt) {
+        var printed =false;
+        params.map.forEachFeatureAtPixel([evt.layerX, evt.layerY], function(feature) {
+            if ((feature.get('ocData')) != undefined) {
+                console.log("id="+feature.getId()+", isFirst="+feature.get("isFirst"));
+                printed = true;
+            }
+        });
+        if (printed) {
+            console.log("====");
+        }
     });
 }
 
@@ -496,6 +628,7 @@ function switchPopupContent(popup, params, features, forward) {
         });
     }
     
+    var markerSection = ocData.markerSection;
     var markerType = ocData.markerType;
     var markerId = ocData.markerId;
 
@@ -505,7 +638,7 @@ function switchPopupContent(popup, params, features, forward) {
         params.compiledPopupTpls[markerType] = Handlebars.compile(popupTpl);
     }
 
-    var markerContext = params.markerData[markerType][markerId];
+    var markerContext = params.markerData[markerSection][markerType][markerId];
     if (features.length > 1) {
         markerContext['showNavi'] = true;
     } else {

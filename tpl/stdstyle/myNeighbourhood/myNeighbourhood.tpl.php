@@ -52,7 +52,7 @@ use lib\Objects\Coordinates\Coordinates;
               break;
       }
       ?>
-      <div class="nbh-block <?=$classSize?>" id="item_<?=$item['item']?>">
+      <div class="nbh-block <?=$classSize?>" id="item_<?=$item['item']?>" section="<?=$item['item']?>">
           <?=$view->callSubTpl($subTemplate)?>
       </div>
   <?php } ?>

@@ -10,24 +10,25 @@
 
 ?>
 {
-    markerFactory: function( type, id, ocData ){
-      var iconFeature = new ol.Feature({
+    markerFactory: function(map, type, id, ocData, section = "_DEFAULT_") {
+        var iconFeature = new ol.Feature({
             geometry: new ol.geom.Point(ol.proj.fromLonLat([parseFloat(ocData.lon), parseFloat(ocData.lat)])),
             ocData: {
-              markerType: type,
-              markerId: id
+                markerSection: section,
+                markerType: type,
+                markerId: id
             }
-          });
-
-          iconFeature.setStyle(new ol.style.Style({
+        });
+        feature.setId(section + '_' + type + '_' + ocData.id);
+        iconFeature.setStyle(new ol.style.Style({
             image: new ol.style.Icon( {
-              anchorOrigin: 'bottom-left',
-              anchor: [0.5, 0],
-              anchorXUnits: 'fraction',
-              anchorYUnits: 'pixels',
-              src: ocData.icon,
+                anchorOrigin: 'bottom-left',
+                anchor: [0.5, 0],
+                anchorXUnits: 'fraction',
+                anchorYUnits: 'pixels',
+                src: ocData.icon,
             })
-          }));
-      return iconFeature;
+        }));
+        return iconFeature;
     },
 }

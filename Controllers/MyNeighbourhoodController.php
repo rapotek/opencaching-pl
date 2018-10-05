@@ -91,39 +91,46 @@ class MyNeighbourhoodController extends BaseController
         $this->view->addHeaderChunk('openLayers5');
 
         $mapModel = new DynamicMapModel();
-        $allCaches = [];
         foreach ($preferences['items'] as $sectionName => $sectionConfig) {
-            if ($sectionConfig['show']) {
-                switch ($sectionName) {
-                    case Neighbourhood::ITEM_LATESTCACHES:
-                        $allCaches = array_merge($allCaches, $latestCaches);
-                        break;
-                    case Neighbourhood::ITEM_UPCOMINGEVENTS:
-                        $allCaches = array_merge($allCaches, $upcomingEvents);
-                        break;
-                    case Neighbourhood::ITEM_FTFCACHES:
-                        $allCaches = array_merge($allCaches, $ftfCaches);
-                        break;
-                    case Neighbourhood::ITEM_TITLEDCACHES:
-                        $allCaches = array_merge($allCaches, $latestTitled);
-                        break;
-                    case Neighbourhood::ITEM_RECOMMENDEDCACHES:
-                        $allCaches = array_merge($allCaches, $topRatedCaches);
-                        break;
-                    default:
-                        break;
-                }
+            $sectionCaches = null;
+            switch ($sectionName) {
+                case Neighbourhood::ITEM_LATESTCACHES:
+                    $sectionCaches = $latestCaches;
+                    break;
+                case Neighbourhood::ITEM_UPCOMINGEVENTS:
+                    $sectionCaches = $upcomingEvents;
+                    break;
+                case Neighbourhood::ITEM_FTFCACHES:
+                    $sectionCaches = $ftfCaches;
+                    break;
+                case Neighbourhood::ITEM_TITLEDCACHES:
+                    $sectionCaches = $latestTitled;
+                    break;
+                case Neighbourhood::ITEM_RECOMMENDEDCACHES:
+                    $sectionCaches = $topRatedCaches;
+                    break;
+                default:
+                    break;
             }
+            if ($sectionCaches) {
+                $mapModel->addMarkersWithExtractor(CacheMarkerModel::class, $sectionCaches, function($row) use ($sectionName) {
+                    $marker = CacheMarkerModel::fromGeocacheFactory($row, $this->loggedUser);
+                    $marker->section = $sectionName;
+                    return $marker;
+                });
+            }
+            $mapModel->setSectionProperties($sectionName, [
+                "visible" => $sectionConfig['show'],
+                "order" => $sectionConfig['order'],
+            ]);
         }
-        $mapModel->addMarkersWithExtractor(CacheMarkerModel::class, $allCaches, function($row){
-            return CacheMarkerModel::fromGeocacheFactory($row, $this->loggedUser);
+
+        $mapModel->addMarkersWithExtractor(LogMarkerModel::class, $latestLogs, function($row){
+            $marker = LogMarkerModel::fromGeoCacheLogFactory($row, $this->loggedUser);
+            $marker->section = Neighbourhood::ITEM_LATESTLOGS;
+            return $marker;
         });
 
-        if ($preferences['items'][Neighbourhood::ITEM_LATESTLOGS]['show']) {
-            $mapModel->addMarkersWithExtractor(LogMarkerModel::class, $latestLogs, function($row){
-                return LogMarkerModel::fromGeoCacheLogFactory($row, $this->loggedUser);
-            });
-        }
         $this->view->setVar('mapModel', $mapModel);
         $this->view->addLocalCss(Uri::getLinkWithModificationTime('/tpl/stdstyle/myNeighbourhood/myNeighbourhood-' . $preferences['style']['name'] . '.css'));
         $this->view->addLocalCss(Uri::getLinkWithModificationTime('/tpl/stdstyle/myNeighbourhood/common.css'));

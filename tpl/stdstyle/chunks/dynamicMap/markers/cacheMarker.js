@@ -134,21 +134,7 @@ CacheMarker.prototype.getLargeImage = function(showCaption) {
     var result = [];
     var caption;
     if (showCaption) {
-        var font = "25pt Tahoma,Geneva,sans-serif";
-        caption = new ol.style.Text({
-            font: font,
-            stroke: new ol.style.Stroke({
-                color: [ 255, 255, 255, 1 - 20/127],
-                width: 12,
-            }),
-            fill: new ol.style.Fill({
-                color: [ 150, 0, 0, 1 - 40/127],
-            }),
-            textBaseline: "top",
-            scale: 0.26,
-            offsetY: 15,
-            text: this.wordwrap(font, 64*4, 26*4, 34, this.ocData.name),
-        });
+        caption = this.generateCaptionStyle();
     }
     result.push(
         new ol.style.Style({

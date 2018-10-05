@@ -1,14 +1,15 @@
-function createOCMarkerFeature(type, id, ocData, ocMarker, layerId = "--DEFAULT--") {
+function createOCMarkerFeature(type, id, ocData, ocMarker, section = "_DEFAULT_") {
     var feature = new ol.Feature({
         geometry: new ol.geom.Point(
             ol.proj.fromLonLat([parseFloat(ocData.lon), parseFloat(ocData.lat)])
         ),
         ocData: {
+            markerSection: section,
             markerType: type,
             markerId: id
         },
     });
-    feature.setId(layerId + '_' + type + '_' + ocData.id);
+    feature.setId(section + '_' + type + '_' + ocData.id);
     if (typeof ocMarker["getFeatureStyle"] === "function") {
         ocMarker.feature = feature;
         feature.set('ocMarker', ocMarker);
@@ -62,6 +63,7 @@ function OCZoomDepMarker(map, ocData) {
     this.zoomRanges = {};
     this.zoomStyles = [];
     this.captionStyle;
+    this.noCaptionStyle;
 }
 
 OCZoomDepMarker.prototype = Object.create(OCMarker.prototype);
@@ -93,10 +95,17 @@ OCZoomDepMarker.prototype.getCachedZoomStyle = function (
         (typeof(this.zoomStyles[zoom]) !== "undefined")
         ? this.zoomStyles[zoom]
         : undefined;
-    if (markerStyle == undefined) {
+    if (
+        markerStyle == this.captionStyle
+        && !this.feature.get("isFirst")
+        && this.noCaptionStyle != undefined
+    ) {
+        markerStyle = this.noCaptionStyle;
+    } else if (markerStyle == undefined) {
+        var newMarkerStyle;
         var showCaption = this.canShowCaption(zoom);
         if (showCaption && this.captionStyle !== undefined) {
-            markerStyle = this.captionStyle;
+            newMarkerStyle = this.captionStyle;
         } else if (!showCaption) {
             var zoomRange = this.getZoomRange(zoom);
             this.zoomStyles.some(function(s, z) {
@@ -105,18 +114,26 @@ OCZoomDepMarker.prototype.getCachedZoomStyle = function (
                     && zoomRange.range[1] >= z
                     && s !== this.captionStyle
                 ) {
-                    markerStyle = s;
+                    newMarkerStyle = s;
                     return true;
                 }
             });
         }
-        if (markerStyle == undefined) {
-            markerStyle = newStyleCallback.call(this, zoom, showCaption);
+        if (newMarkerStyle == undefined) {
+            newMarkerStyle = newStyleCallback.call(
+                this, zoom, showCaption ? 2 : 0
+            );
             if (showCaption) {
-                this.captionStyle = markerStyle;
+                this.captionStyle = newMarkerStyle;
+                this.noCaptionStyle = newStyleCallback.call(this, zoom, 1);
             }
         }
-        this.zoomStyles[zoom] = markerStyle;
+        this.zoomStyles[zoom] = newMarkerStyle;
+        if (showCaption && !this.feature.get("isFirst")) {
+            markerStyle = this.noCaptionStyle;
+        } else {
+            markerStyle = newMarkerStyle;
+        }
     }
     this.currentStyle = markerStyle;
     return markerStyle.style;
@@ -149,6 +166,7 @@ OkapiBasedMarker.prototype.canShowCaption = function(zoom) {
             var coords = this.feature.getGeometry().getCoordinates();
             var featurePx = this.map.getPixelFromCoordinate(coords);
             var closestPx;
+            var closestCandidate; //
             var minDist;
             var self = this;
             ocLayers.forEach(function(ocLayer) {
@@ -168,25 +186,33 @@ OkapiBasedMarker.prototype.canShowCaption = function(zoom) {
                     );
                     var candidateDist =
                         Math.sqrt(
-                            (featurePx[0] - candidatePx[0])^2
+                            (featurePx[0] - candidatePx[0]) ** 2
                             +
-                            (featurePx[1] - candidatePx[1])^2
+                            (featurePx[1] - candidatePx[1]) ** 2
                         );
                     if (minDist == undefined || candidateDist < minDist) {
                         closestPx = candidatePx;
                         minDist = candidateDist;
+                        closestCandidate = candidate;
                     }
                 }
             });
             if (closestPx != undefined) {
-                result = (
+                /*
+                 // does not work as expected, why?
+                 result = (
                     Math.abs(
                         ((closestPx[0] + 64) >> 5) - ((featurePx[0] + 64) >> 5)
                     ) > 1
-                    &&
+                    ||
                     Math.abs(
                         ((closestPx[1] + 64) >> 5) - ((featurePx[1] + 64) >> 5)
                     ) > 1
+                );*/
+                result = (
+                    Math.abs(closestPx[0] - featurePx[0]) > 64
+                    ||
+                    Math.abs(closestPx[1] - featurePx[1]) > 64
                 );
             }
         }
@@ -201,15 +227,15 @@ OkapiBasedMarker.prototype.getFeatureStyle = function(resolution) {
     );
 }
 
-OkapiBasedMarker.prototype.computeNewStyle = function(zoom, showCaption) {
+OkapiBasedMarker.prototype.computeNewStyle = function(zoom, captionLevel) {
     // TODO: implement higher level (map level) styles caching
     var result = {
         style: undefined,
         popupOffsetY: undefined
     }
     var zoomRange = this.getZoomRange(zoom);
-    if (showCaption) {
-        result.style = this.getLargeImage(true);
+    if (captionLevel > 0) {
+        result.style = this.getLargeImage(captionLevel > 1);
     } else {
         switch(zoomRange.name) {
             case 'tiny': result.style = this.getTinyImage(); break;
@@ -228,8 +254,7 @@ OkapiBasedMarker.prototype.isRecommended = function() {
     );
 }
 
-OkapiBasedMarker.prototype.getSuffix = function(value, suffixFunction)
-{
+OkapiBasedMarker.prototype.getSuffix = function(value, suffixFunction) {
     var result = '';
     if (value != undefined) {
         var suffix = this[suffixFunction](value);
@@ -238,6 +263,24 @@ OkapiBasedMarker.prototype.getSuffix = function(value, suffixFunction)
         }
     }
     return result;
+}
+
+OkapiBasedMarker.prototype.generateCaptionStyle = function() {
+    var font = "25pt Tahoma,Geneva,sans-serif";
+    return new ol.style.Text({
+        font: font,
+        stroke: new ol.style.Stroke({
+            color: [ 255, 255, 255, 1 - 20/127],
+            width: 12,
+        }),
+        fill: new ol.style.Fill({
+            color: [ 150, 0, 0, 1 - 40/127],
+        }),
+        textBaseline: "top",
+        scale: 0.25,
+        offsetY: 17,
+        text: this.wordwrap(font, 64*4, 26*4, 34, this.ocData.name),
+    });
 }
 
 OkapiBasedMarker.prototype.wordwrap = function(

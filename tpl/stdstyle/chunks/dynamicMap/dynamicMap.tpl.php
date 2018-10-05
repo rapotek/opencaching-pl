@@ -59,6 +59,7 @@ var dynamicMapParams_<?=$canvasId?> = {
   mapLayersConfig: getMapLayersConfig(), // loaded in header by openlayers5 chunk
   selectedLayerKey: "<?=$mapModel->getSelectedLayerName()?>",
   markerData: <?=$mapModel->getMarkersDataJson()?>,
+  sectionsProperties: <?=$mapModel->getSectionsPropertiesJson()?>,
   markerMgr: {
     <?php foreach($mapModel->getMarkerTypes() as $markerType) { ?>
       <?=$markerType?>: <?php include(__DIR__.'/markers/'.$markerType.'Mgr.tpl.php'); ?>,

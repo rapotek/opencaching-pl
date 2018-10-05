@@ -12,6 +12,7 @@ abstract class AbstractMarkerModelBase
     public $lat;            // lat. of marker
     public $lon;            // lon. of marker
     public $icon;           // icon of marker
+    public $section;        // [optional] section the marker belongs to
 
     public function getMarkerTypeName(){
         $str = (new ReflectionClass(static::class))->getShortName();
