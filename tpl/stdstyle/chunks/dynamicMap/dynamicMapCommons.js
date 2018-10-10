@@ -518,7 +518,7 @@ function loadMarkers(params) {
         });
     };
 
-    params.map.getViewport().addEventListener('contextmenu', function(evt) {
+    /*params.map.getViewport().addEventListener('contextmenu', function(evt) {
         var printed =false;
         params.map.forEachFeatureAtPixel([evt.layerX, evt.layerY], function(feature) {
             if ((feature.get('ocData')) != undefined) {
@@ -529,7 +529,7 @@ function loadMarkers(params) {
         if (printed) {
             console.log("====");
         }
-    });
+    });*/
 }
 
 function getPopupOffsetY(features) {
@@ -616,10 +616,12 @@ function switchPopupContent(popup, params, features, forward) {
                         var oldSource = popup.get('oldFeatureSource');
                         if (oldSource != undefined) {
                             params["foregroundSource"].removeFeature(oldFeature);
+                            oldFeature.set("isFirst", false);
                             oldSource.addFeature(oldFeature);
                         }
                     }
                     s.removeFeature(feature);
+                    feature.set("isFirst", true);
                     params["foregroundSource"].addFeature(feature);
                     popup.set('oldFeatureSource', s);
                     return true;

@@ -91,6 +91,7 @@ OCZoomDepMarker.prototype.getZoomRange = function(zoom) {
 OCZoomDepMarker.prototype.getCachedZoomStyle = function (
     zoom, newStyleCallback
 ) {
+    //console.log("zoom="+zoom+", name="+this.ocData.name+", isFirst="+this.feature.get("isFirst"))
     var markerStyle =
         (typeof(this.zoomStyles[zoom]) !== "undefined")
         ? this.zoomStyles[zoom]
@@ -136,6 +137,7 @@ OCZoomDepMarker.prototype.getCachedZoomStyle = function (
         }
     }
     this.currentStyle = markerStyle;
+    //console.log(markerStyle.style[0].getImage().getSrc());
     return markerStyle.style;
 }
 
@@ -266,7 +268,7 @@ OkapiBasedMarker.prototype.getSuffix = function(value, suffixFunction) {
 }
 
 OkapiBasedMarker.prototype.generateCaptionStyle = function() {
-    var font = "25pt Tahoma,Geneva,sans-serif";
+    var font = "26pt Tahoma,Geneva,sans-serif";
     return new ol.style.Text({
         font: font,
         stroke: new ol.style.Stroke({
@@ -278,7 +280,7 @@ OkapiBasedMarker.prototype.generateCaptionStyle = function() {
         }),
         textBaseline: "top",
         scale: 0.25,
-        offsetY: 17,
+        offsetY: 15,
         text: this.wordwrap(font, 64*4, 26*4, 34, this.ocData.name),
     });
 }
