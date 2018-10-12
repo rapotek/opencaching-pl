@@ -44,61 +44,35 @@ LogMarker.prototype.getIconFileName = function(sizePrefix, logType, flag) {
     return name;
 }
 
-LogMarker.prototype.getTinyImage = function() {
-    result = [];
-    result.push(
-        new ol.style.Style({
-            image: new ol.style.Icon({
-                src: this.iconsDir
-                    + this.getIconFileName(
-                        'tiny',
-                        this.ocData.logType
-                    ),
-            }),
-        })
-    );
-    return result;
-}
-
-LogMarker.prototype.getMediumImage = function() {
-    result = [];
-    result.push(
-        new ol.style.Style({
-            image: new ol.style.Icon({
-                src: this.iconsDir
-                    + this.getIconFileName(
-                        'medium',
-                        this.ocData.logType,
-                        (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
-                    ),
-            }),
-        })
-    );
-    return result;
-}
-
-LogMarker.prototype.getLargeImage = function(showCaption) {
-    result = [];
-    var caption;
-    if (showCaption) {
-        caption = this.generateCaptionStyle();
+LogMarker.prototype.getIconSrc = function(size, showCaption) {
+    var result;
+    switch(size) {
+        case 'tiny':
+            result = this.iconsDir
+                + this.getIconFileName(
+                    'tiny',
+                    this.ocData.logType
+                );
+            break;
+        default:
+            result = this.iconsDir
+                + this.getIconFileName(
+                    size,
+                    this.ocData.logType,
+                    (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
+                );
     }
-    result.push(
-        new ol.style.Style({
-            image: new ol.style.Icon({
-                anchorOrigin: 'bottom-left',
-                anchorXUnits: 'pixel',
-                anchorYUnits: 'pixel',
-                anchor: [ 13,  6 ],
-                src: this.iconsDir
-                    + this.getIconFileName(
-                        'large',
-                        this.ocData.logType,
-                        (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
-                    ),
-            }),
-            text: caption,
-        })
-    );
+    return result;
+}
+
+LogMarker.prototype.getIconStyle = OkapiBasedMarker.prototype.getCommonIconStyle;
+
+LogMarker.prototype.getCaptionStyle = function(showCaption) {
+    var result;
+    if (showCaption) {
+        result = new ol.style.Style({
+            text: this.generateCaptionStyle(this.ocData.name),
+        });
+    }
     return result;
 }

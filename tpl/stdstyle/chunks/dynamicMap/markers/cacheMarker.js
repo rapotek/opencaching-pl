@@ -90,73 +90,55 @@ CacheMarker.prototype.getIconFileName = function(
     return name;
 }
 
-CacheMarker.prototype.getTinyImage = function() {
-    var result = [];
-    result.push(
-        new ol.style.Style({
-            image: new ol.style.Icon({
-                src: this.iconsDir
-                    + this.getIconFileName(
-                        'tiny',
-                        true,
-                        this.ocData.cacheType,
-                        this.ocData.cacheStatus
-                    ),
-            }),
-        })
-    );
-    return result;
-}
-
-CacheMarker.prototype.getMediumImage = function() {
-    var result = [];
-    result.push(
-        new ol.style.Style({
-            image: new ol.style.Icon({
-                src: this.iconsDir
-                    + this.getIconFileName(
-                        'medium',
-                        true,
-                        this.ocData.cacheType,
-                        this.ocData.cacheStatus,
-                        (this.ocData.cacheStatus == 1 ? this.ocData.ratingId : undefined),
-                        (this.ocData.cacheStatus == 1 ? this.isRecommended() : undefined),
-                        (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
-                        false
-                    ),
-            }),
-        })
-    );
-    return result;
-}
-
-CacheMarker.prototype.getLargeImage = function(showCaption) {
-    var result = [];
-    var caption;
-    if (showCaption) {
-        caption = this.generateCaptionStyle();
+CacheMarker.prototype.getIconSrc = function(size, showCaption) {
+    var result;
+    switch(size) {
+        case 'tiny':
+            result = this.iconsDir
+                + this.getIconFileName(
+                    'tiny',
+                    true,
+                    this.ocData.cacheType,
+                    this.ocData.cacheStatus
+                );
+            break;
+        case 'medium':
+            result = this.iconsDir
+                + this.getIconFileName(
+                    'medium',
+                    true,
+                    this.ocData.cacheType,
+                    this.ocData.cacheStatus,
+                    (this.ocData.cacheStatus == 1 ? this.ocData.ratingId : undefined),
+                    (this.ocData.cacheStatus == 1 ? this.isRecommended() : undefined),
+                    (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
+                    false
+                );
+            break;
+        default:
+            result = this.iconsDir
+                + this.getIconFileName(
+                    'large',
+                    false,
+                    this.ocData.cacheType,
+                    this.ocData.cacheStatus,
+                    (this.ocData.cacheStatus == 1 ? this.ocData.ratingId : undefined),
+                    (this.ocData.cacheStatus == 1 ? this.isRecommended() : undefined),
+                    (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
+                    (this.ocData.isFound ? showCaption : undefined)
+                );
     }
-    result.push(
-        new ol.style.Style({
-            image: new ol.style.Icon({
-                anchorOrigin: 'bottom-left',
-                anchorXUnits: 'pixel',
-                anchorYUnits: 'pixel',
-                anchor: [ 13,  6 ],
-                src: this.iconsDir
-                    + this.getIconFileName(
-                        'large',
-                        false,
-                        this.ocData.cacheType,
-                        this.ocData.cacheStatus,
-                        (this.ocData.cacheStatus == 1 ? this.ocData.ratingId : undefined),
-                        (this.ocData.cacheStatus == 1 ? this.isRecommended() : undefined),
-                        (this.ocData.isOwner ? 1 : (this.ocData.isFound ? 2 : undefined)),
-                        (this.ocData.isFound ? showCaption : undefined)
-                    ),
-            }),
-            text: caption,
-        })
-    );
+    return result;
+}
+
+CacheMarker.prototype.getIconStyle = OkapiBasedMarker.prototype.getCommonIconStyle;
+
+CacheMarker.prototype.getCaptionStyle = function(showCaption) {
+    var result;
+    if (showCaption) {
+        result = new ol.style.Style({
+            text: this.generateCaptionStyle(this.ocData.name),
+        });
+    }
     return result;
 }

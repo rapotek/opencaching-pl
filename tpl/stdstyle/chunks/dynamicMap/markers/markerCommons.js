@@ -92,6 +92,7 @@ OCZoomDepMarker.prototype.getCachedZoomStyle = function (
     zoom, newStyleCallback
 ) {
     //console.log("zoom="+zoom+", name="+this.ocData.name+", isFirst="+this.feature.get("isFirst"))
+    var markerStyle;
     var markerStyle =
         (typeof(this.zoomStyles[zoom]) !== "undefined")
         ? this.zoomStyles[zoom]
@@ -229,20 +230,75 @@ OkapiBasedMarker.prototype.getFeatureStyle = function(resolution) {
     );
 }
 
+OkapiBasedMarker.prototype.getCachedIconStyle = function(zoomRangeName, captionLevel) {
+    var src;
+    var size = captionLevel > 0 ? 'large' : zoomRangeName;
+    src = this.getIconSrc(size);
+    var cachedStyle;
+    var ocIconStyles = this.map.get('_ocIconStyles');
+    if (ocIconStyles != undefined) {
+        cachedStyle =
+            typeof(ocIconStyles[src]) !== "undefined"
+            ? ocIconStyles[src]
+            : undefined;
+    }
+    if (!cachedStyle) {
+        cachedStyle = this.getIconStyle(size, src);
+        if (ocIconStyles == undefined) {
+            ocIconStyles = {};
+        }
+        ocIconStyles[src] = cachedStyle;
+        this.map.set('_ocIconStyles', ocIconStyles);
+    }
+    return cachedStyle;
+}
+
+OkapiBasedMarker.prototype.getCommonIconStyle =  function(size, src) {
+    var result;
+    if (size == 'medium') {
+        result = new ol.style.Style({
+            image: new ol.style.Icon({
+                anchorOrigin: 'bottom-left',
+                anchorXUnits: 'pixel',
+                anchorYUnits: 'pixel',
+                anchor: [ 7,  7 ],
+                src: src,
+            }),
+        });
+    }
+    if (size == 'large') {
+        result = new ol.style.Style({
+            image: new ol.style.Icon({
+                anchorOrigin: 'bottom-left',
+                anchorXUnits: 'pixel',
+                anchorYUnits: 'pixel',
+                anchor: [ 13,  6 ],
+                src: src,
+            }),
+        });
+    } else {
+        result = new ol.style.Style({
+            image: new ol.style.Icon({
+                src: src,
+            }),
+        });
+    }
+    return result;
+}
+
 OkapiBasedMarker.prototype.computeNewStyle = function(zoom, captionLevel) {
-    // TODO: implement higher level (map level) styles caching
     var result = {
         style: undefined,
         popupOffsetY: undefined
     }
+
     var zoomRange = this.getZoomRange(zoom);
+    result.style = [];
+    result.style.push(this.getCachedIconStyle(zoomRange.name, captionLevel));
     if (captionLevel > 0) {
-        result.style = this.getLargeImage(captionLevel > 1);
-    } else {
-        switch(zoomRange.name) {
-            case 'tiny': result.style = this.getTinyImage(); break;
-            case 'medium': result.style = this.getMediumImage(); break;
-            default: result.style = this.getLargeImage(); break;
+        var captionStyle = this.getCaptionStyle(captionLevel > 1);
+        if (captionStyle) {
+            result.style.push(captionStyle);
         }
     }
     return result;
@@ -267,7 +323,7 @@ OkapiBasedMarker.prototype.getSuffix = function(value, suffixFunction) {
     return result;
 }
 
-OkapiBasedMarker.prototype.generateCaptionStyle = function() {
+OkapiBasedMarker.prototype.generateCaptionStyle = function(caption) {
     var font = "26pt Tahoma,Geneva,sans-serif";
     return new ol.style.Text({
         font: font,
@@ -281,7 +337,7 @@ OkapiBasedMarker.prototype.generateCaptionStyle = function() {
         textBaseline: "top",
         scale: 0.25,
         offsetY: 15,
-        text: this.wordwrap(font, 64*4, 26*4, 34, this.ocData.name),
+        text: this.wordwrap(font, 64*4, 26*4, 34, caption),
     });
 }
 

@@ -253,7 +253,7 @@ function cordsUnderCursorInit(params) {
       params.curPos.lastKnownCoords = event.coordinate
 
       params.curPos.positionDiv.html(
-          CoordinatesUtil.toWGS84(params.map, params.curPos.lastKnownCoords, params.curPos.coordsFormat)+" ["+event.pixel[0]+","+event.pixel[1]+"]");
+          CoordinatesUtil.toWGS84(params.map, params.curPos.lastKnownCoords, params.curPos.coordsFormat)+" ["+Math.round(event.pixel[0])+","+Math.round(event.pixel[1])+"]");
     }
   });
 
