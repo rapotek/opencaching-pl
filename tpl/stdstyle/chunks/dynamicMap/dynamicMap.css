@@ -228,7 +228,9 @@
 /* used in cache marker caption */
 @font-face {
     font-family: 'Tahoma';
-    src: url('tahoma.ttf') format('truetype');
+    src: url('hinted-Tahoma.woff2') format('woff2'),
+        url('hinted-Tahoma.woff') format('woff'),
+        url('tahoma.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
