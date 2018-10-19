@@ -131,6 +131,8 @@ class MyNeighbourhoodController extends BaseController
             return $marker;
         });
 
+        $mapModel->setCoords($neighbourhoodsList[$selectedNbh]->getCoords());
+        $mapModel->setRadius($neighbourhoodsList[$selectedNbh]->getRadius() * 1000);
         $this->view->setVar('mapModel', $mapModel);
         $this->view->addLocalCss(Uri::getLinkWithModificationTime('/tpl/stdstyle/myNeighbourhood/myNeighbourhood-' . $preferences['style']['name'] . '.css'));
         $this->view->addLocalCss(Uri::getLinkWithModificationTime('/tpl/stdstyle/myNeighbourhood/common.css'));

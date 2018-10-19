@@ -54,6 +54,7 @@ var dynamicMapParams_<?=$canvasId?> = {
   prefix: "<?=$canvasId?>",
   targetDiv: "<?=$canvasId?>",
   centerOn: <?=$mapModel->getCoords()->getAsOpenLayersFormat()?>,
+  initRadius: <?=$mapModel->getRadius()?>,
   mapStartZoom: <?=$mapModel->getZoom()?>,
   forceMapZoom: <?=$mapModel->isZoomForced()?'true':'false'?>,
   mapLayersConfig: getMapLayersConfig(), // loaded in header by openlayers5 chunk

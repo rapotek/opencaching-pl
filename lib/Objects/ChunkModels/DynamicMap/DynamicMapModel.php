@@ -18,9 +18,17 @@ class DynamicMapModel
 
     /** @var Coordinates */
     private $coords;         // center of the map
+
+    private $radius; // initially visible radius in meters from center of the map
+    private $swCorner;       // for initial extent
+    private $neCorner;       // for initial extent
+    private $startExtent;  // set if sw/ne corner coords are present
+
     private $zoom;           // zoom of the map, int,
     private $forceZoom;      // force given zoom even if some markers will be hidden
     private $mapLayerName;   // name of the default map layer
+
+    private $infoMessage;    // short message to display at map
 
     private $markerModels = [];
     private $sectionsProperties = [];
@@ -35,6 +43,8 @@ class DynamicMapModel
 
         $this->zoom = $this->ocConfig->getMainPageMapZoom();
         $this->forceZoom = false;
+        $this->startExtent = false;
+        $this->radius = 0;
         $this->mapLayerName = 'OSM';
     }
 
@@ -144,6 +154,10 @@ class DynamicMapModel
         return $this->coords;
     }
 
+    public function getRadius(){
+        return $this->radius;
+    }
+
     public function getZoom(){
         return $this->zoom;
     }
@@ -163,6 +177,10 @@ class DynamicMapModel
         $this->forceZoom = true;
     }
 
+    public function setInitLayerName($name){
+        $this->mapLayerName = $name;
+    }
+
     public function forceDefaultZoom()
     {
         $this->forceZoom = true;
@@ -171,6 +189,39 @@ class DynamicMapModel
     public function setCoords(Coordinates $cords)
     {
         $this->coords = $cords;
+    }
+
+    public function setRadius($radius)
+    {
+        $this->radius = intval($radius) >= 0 ? intval($radius) : 0;
+    }
+
+    public function setStartExtent(Coordinates $swCorner, Coordinates $neCorner)
+    {
+        $this->swCorner = $swCorner;
+        $this->neCorner = $neCorner;
+        $this->startExtent = true;
+    }
+
+    public function getStartExtentJson()
+    {
+        if($this->startExtent){
+            $sw = $this->swCorner->getAsOpenLayersFormat();
+            $ne = $this->neCorner->getAsOpenLayersFormat();
+            return "{ sw:$sw, ne:$ne }";
+        }else{
+            return "null";
+        }
+    }
+
+    public function setInfoMessage($msg)
+    {
+        $this->infoMessage = $msg;
+    }
+
+    public function getInfoMessage()
+    {
+        return $this->infoMessage;
     }
 
     public function setSectionProperties($section, $properties) {
