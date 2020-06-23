@@ -737,32 +737,73 @@ if ($error == false) {
 
                 $cacheLimitByTypePerUser = GeoCache::getUserActiveCachesCountByType($usr['userid']);
 
-                //build typeoptions
+                //build type options
                 $types = '';
-                foreach (GeoCacheCommons::CacheTypesArray() as $type) {
 
-                    // blockforbidden cache types
-                    if (($type != $cache_type) && in_array($type, OcConfig::getNoNewCacheOfTypesArray()) && !$usr['admin']) {
-                        continue;
-                    }
-                    if (isset($config['cacheLimitByTypePerUser'][$cache_type]) &&
-                        $cacheLimitByTypePerUser[$cache_type] >= $config['cacheLimitByTypePerUser'][$cache_type] &&
-                        !$usr['admin']) {
-                        continue;
-                    }
-                    if (isset($cacheLimitByTypePerUser[$type]) &&
-                        isset($config['cacheLimitByTypePerUser'][$type]) &&
-                        $cacheLimitByTypePerUser[$type] >= $config['cacheLimitByTypePerUser'][$type] &&
-                        !$usr['admin']) {
-                        continue;
-                    }
+                // do not provide change cache type options
+                // if config limit for current type is exceeded
+                if (
+                    !$usr['admin']
+                    && isset($cacheLimitByTypePerUser[$cache_type])
+                    && isset($config['cacheLimitByTypePerUser'][$cache_type])
+                    && $cacheLimitByTypePerUser[$cache_type]
+                        >= $config['cacheLimitByTypePerUser'][$cache_type]
+                ) {
+                } else {
+                    foreach (GeoCacheCommons::CacheTypesArray() as $type) {
 
-                    if ($type == $cache_type) {
-                        $types .= '<option value="' . $type . '" selected="selected">' .
-                            htmlspecialchars( tr(GeoCacheCommons::CacheTypeTranslationKey($type)), ENT_COMPAT, 'UTF-8') . '</option>';
-                    } else {
-                        $types .= '<option value="' . $type . '">' .
-                            htmlspecialchars( tr( GeoCacheCommons::CacheTypeTranslationKey($type)), ENT_COMPAT, 'UTF-8') . '</option>';
+                        if (!$usr['admin']) {
+                            // block forbidden cache types
+                            if (
+                                ($type != $cache_type)
+                                && in_array(
+                                    $type, OcConfig::getNoNewCacheOfTypesArray()
+                                )
+                            ) {
+                                continue;
+                            }
+                            // do not include types where limit is exceeded
+                            if (
+                                isset($cacheLimitByTypePerUser[$type])
+                                && isset(
+                                    $config['cacheLimitByTypePerUser'][$type]
+                                )
+                                && $cacheLimitByTypePerUser[$type]
+                                    >= $config['cacheLimitByTypePerUser'][$type]
+                            ) {
+                                continue;
+                            }
+                        }
+                        if ($type == $cache_type) {
+                            $types .=
+                                '<option value="'
+                                . $type
+                                . '" selected="selected">'
+                                . htmlspecialchars(
+                                    tr(
+                                        GeoCacheCommons::CacheTypeTranslationKey(
+                                            $type
+                                        )
+                                    ),
+                                    ENT_COMPAT,
+                                    'UTF-8'
+                                )
+                                . '</option>';
+                        } else {
+                            $types .=
+                                '<option value="'
+                                . $type
+                                . '">'
+                                . htmlspecialchars(
+                                    tr(
+                                        GeoCacheCommons::CacheTypeTranslationKey(
+                                            $type
+                                        )
+                                    ),
+                                    ENT_COMPAT, 'UTF-8'
+                                )
+                                . '</option>';
+                        }
                     }
                 }
                 tpl_set_var('typeoptions', $types);
