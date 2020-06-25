@@ -8,9 +8,10 @@
     }
 });
 
-function loadLogEntries(offset, limit){
+function loadLogEntries(offset, limit, cacheId = null, targetId = null){
     var owner_id = $("#owner_id").val();
-    var geocacheId = $("#cacheid").val();
+    var geocacheId = cacheId ? cacheId : $("#cacheid").val();
+    var target = targetId ? targetId : "viewcache-logs";
 
     request = $.ajax({
         url: "getLogEntries.php",
@@ -24,6 +25,6 @@ function loadLogEntries(offset, limit){
         }
     });
     request.done(function (response, textStatus, jqXHR){
-        $("#viewcache-logs").html($("#viewcache-logs").html() + response);
+        $("#" + target).html($("#" + target).html() + response);
     });
 }

@@ -140,12 +140,14 @@ if ($_POST['spoiler_only'] == "&spoiler_only=1") {
     <link rel="shortcut icon" href="<?=OcConfig::getSiteMainViewIcon('shortcutIcon')?>">
     <link rel="stylesheet" type="text/css"
           href="<?= Uri::getLinkWithModificationTime('/css/style_print.css') ?>">
+    <?php View::callChunkInline('jQuery') ?>
+    <script src="<?= Uri::getLinkWithModificationTime('/js/printcache.js') ?>"></script>
 </head>
 
 <body onload="<?php echo $include_caches; ?>">
 
 <script>
-    function clientSideInclude(id, url) {
+    function clientSideInclude(id, url, prefix='include') {
         var req = false;
         // For Safari, Firefox, and other non-MS browsers
         if (window.XMLHttpRequest) {
@@ -179,6 +181,18 @@ if ($_POST['spoiler_only'] == "&spoiler_only=1") {
             req.open('GET', url, false);
             req.send(null);
             element.innerHTML = req.responseText;
+            if (typeof loadLogEntries === "function") {
+                var logEntriesToLoad = (
+                    url.indexOf('&showlogs=4') > 0 ? 4 : (
+                        url.indexOf('&showlogsall=y') > 0 ? 9999 : 0
+                    )
+                );
+                if (logEntriesToLoad > 0) {
+                    loadLogEntries(
+                        0, logEntriesToLoad, id.replace(prefix, ''), id
+                    );
+                }
+            }
         } else {
             element.innerHTML =
                 "Sorry, your browser does not support " +
@@ -199,8 +213,6 @@ if ($_POST['spoiler_only'] == "&spoiler_only=1") {
     <input type="hidden" id="logEntriesCount" value="{logEntriesCount}">
     <input type="hidden" id="showlogs" value="<?= $showlogs ?>">
 
-    <?php View::callChunkInline('jQuery') ?>
-    <script src="<?= Uri::getLinkWithModificationTime('/js/printcache.js') ?>"></script>
 
     <form action="/printcache.php?cacheid=<?php print $cache_id; ?>" method="post">
         <?php
