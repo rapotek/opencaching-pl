@@ -4,16 +4,19 @@ use src\Utils\Database\XDb;
 use src\Utils\Generators\Uuid;
 use src\Models\OcConfig\OcConfig;
 use src\Utils\Img\OcImage;
+use src\Models\Pictures\OcPicture;
+use src\Models\ApplicationContainer;
 
 require_once (__DIR__.'/lib/common.inc.php');
 
-//Preprocessing
-if ($error == false) {
-    //user logged in?
-    if ($usr == false) {
-        $target = urlencode(tpl_get_current_page());
-        tpl_redirect('login.php?target=' . $target);
-    } else {
+//user logged in?
+$loggedUser = ApplicationContainer::GetAuthorizedUser();
+if (!$loggedUser) {
+    $target = urlencode(tpl_get_current_page());
+    tpl_redirect('login.php?target=' . $target);
+    exit;
+}
+
         $tplname = 'newpic';
 
         $submit = tr('submit');
@@ -24,10 +27,10 @@ if ($error == false) {
         $message_title_internal = tr('file_err_internal_title');
         $message_internal = tr('file_err_internal_desc');
 
-        tpl_set_var('maxpicsizeMB', $config['limits']['image']['filesize']);
-        tpl_set_var('maxpicsize',   $config['limits']['image']['filesize'] * 1024 * 1024);
+        tpl_set_var('maxpicsizeMB', OcConfig::getPicMaxSize());
+        tpl_set_var('maxpicsize',   OcConfig::getPicMaxSize() * 1024 * 1024);
         tpl_set_var('maxpicresolution', $config['limits']['image']['pixels_text']);
-        tpl_set_var('picallowedformats', $config['limits']['image']['extension_text']);
+        tpl_set_var('picallowedformats', OcConfig::getPicAllowedExtensions(TRUE));
 
         $message_title_toobig = tr('image_err_too_big');
         $message_toobig = tr('image_max_size');
@@ -67,8 +70,9 @@ if ($error == false) {
                         $allok = false;
                     else {
 
-                        if ($r['user_id'] != $usr['userid'] && !$usr['admin'])
+                        if ($r['user_id'] != $loggedUser->getUserId() && !$loggedUser->hasOcTeamRole()) {
                             $allok = false;
+                        }
 
                         $cacheid = $r['cache_id'];
                         tpl_set_var('cacheid', $cacheid);
@@ -99,8 +103,9 @@ if ($error == false) {
                         tpl_set_var('cacheid', $r['cache_id']);
                         tpl_set_var('pictypedesc', $pictypedesc_cache);
 
-                        if ($r['user_id'] != $usr['userid'] && !$usr['admin'])
+                        if ($r['user_id'] != $loggedUser->getUserId() && !$loggedUser->hasOcTeamRole()) {
                             $allok = false;
+                        }
                     }
 
                     tpl_set_var('begin_cacheonly', '');
@@ -144,7 +149,7 @@ if ($error == false) {
                         $fna = mb_split('\\.', $_FILES['file']['name']);
                         $extension = mb_strtolower($fna[count($fna) - 1]);
 
-                        if (mb_strpos($config['limits']['image']['extension'], ';' . $extension . ';') === false) {
+                        if (!in_array($extension, explode(',',OcConfig::getPicAllowedExtensions()))) {
                             $tplname = 'message';
                             tpl_set_var('messagetitle', $message_title_wrongext);
                             tpl_set_var('message_start', '');
@@ -154,7 +159,7 @@ if ($error == false) {
                             exit;
                         }
 
-                        if ($_FILES['file']['size'] > ( round($config['limits']['image']['filesize'] * 1024 * 1024) )) {
+                        if ($_FILES['file']['size'] > ( round(OcConfig::getPicMaxSize() * 1024 * 1024) )) {
                             // file too big
                             $tplname = 'message';
                             tpl_set_var('messagetitle', $message_title_toobig);
@@ -167,8 +172,7 @@ if ($error == false) {
 
                         $uuid = Uuid::create();
 
-                        if ($config['limits']['image']['resize'] == 1 &&
-                            $_FILES['file']['size'] > round($config['limits']['image']['resize_larger'] * 1024 * 1024) ) {
+                        if ($_FILES['file']['size'] > round(OcConfig::getPicResizeLimit() * 1024 * 1024) ) {
 
                             // Apply resize to uploaded image
                             $filePath = OcImage::createThumbnail(
@@ -190,7 +194,7 @@ if ($error == false) {
                                  `local`,`spoiler`,`display`,`node`,`seq`)
                             VALUES (?, ?, NOW(), ?, '', 0, NOW(), NOW(),?, ?,
                                     ?, 1, ?, ?, ?, ?)",
-                            $uuid, OcConfig::getPicBaseUrl().'/'.basename($filePath), $title, $objectid, $type, $usr['userid'],
+                            $uuid, OcConfig::getPicBaseUrl().'/'.basename($filePath), $title, $objectid, $type, $loggedUser->getUserId(),
                             ($bSpoiler == 1) ? '1' : '0', ($bNoDisplay == 1) ? '0' : '1', OcConfig::getSiteNodeId(), $def_seq);
 
                         switch ($type) {
@@ -252,8 +256,8 @@ if ($error == false) {
                 }
             }
         }
-    }
-}
+
+
 
 //make the template and send it out
 tpl_BuildTemplate();

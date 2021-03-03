@@ -4,6 +4,7 @@ use src\Models\GeoCache\GeoCache;
 use src\Utils\Database\XDb;
 use src\Utils\Database\OcDb;
 use src\Utils\I18n\Languages;
+use src\Models\ChunkModels\UploadModel;
 use src\Models\Coordinates\Coordinates;
 use src\Utils\EventHandler\EventHandler;
 use src\Models\GeoCache\GeoCacheLog;
@@ -15,8 +16,16 @@ use src\Utils\Gis\Countries;
 use src\Utils\Uri\SimpleRouter;
 use src\Controllers\PictureController;
 use src\Models\GeoCache\GeoCacheCommons;
+use src\Models\Pictures\OcPicture;
+use src\Models\ApplicationContainer;
 
 require_once(__DIR__.'/lib/common.inc.php');
+
+$view->loadJQuery();
+$view->loadJQueryUI();
+$view->addLocalCss('/views/editCache/editCache.css');
+$view->addHeaderChunk('handlebarsJs');
+$view->addHeaderChunk('upload/upload');
 
 function build_drop_seq($item_row, $selected_seq, $max_drop, $thisid, $drop_type)
 {
@@ -54,19 +63,21 @@ function build_drop_seq($item_row, $selected_seq, $max_drop, $thisid, $drop_type
     };
 }
 
-//Preprocessing
-if ($error == false) {
-    //cacheid
-    $cache_id = 0;
-    if (isset($_REQUEST['cacheid'])) {
-        $cache_id = (int) $_REQUEST['cacheid'];
-    }
+//cacheid
+$cache_id = 0;
+if (isset($_REQUEST['cacheid'])) {
+    $cache_id = (int) $_REQUEST['cacheid'];
+}
 
-    //user logged in?
-    if ($usr == false) {
-        $target = urlencode(tpl_get_current_page());
-        tpl_redirect('login.php?target=' . $target);
-    } else {
+//user logged in?
+$loggedUser = ApplicationContainer::GetAuthorizedUser();
+if (!$loggedUser) {
+    $target = urlencode(tpl_get_current_page());
+    tpl_redirect('login.php?target=' . $target);
+    exit;
+}
+
+
         $dbc = OcDb::instance();
         $thatquery =
             "SELECT user_id, name, picturescount, mp3count, type, size, date_hidden, date_activate, date_created, longitude, latitude,
@@ -84,7 +95,7 @@ if ($error == false) {
 
         if ($cache_record = $dbc->dbResultFetch($s)) {
 
-            if ($cache_record['user_id'] == $usr['userid'] || $usr['admin']) {
+            if ($cache_record['user_id'] == $loggedUser->getUserId() || $loggedUser->hasOcTeamRole()) {
 
                 // from deleted editcache.inc.php:
                 $submit = 'Zapisz';
@@ -101,8 +112,6 @@ if ($error == false) {
                 $all_countries_submit = '<input class="btn btn-default btn-sm" type="submit" name="show_all_countries_submit" value="' . tr('show_all_countries') . '"/>';
 
                 $status_message = '&nbsp;<span class="errormsg">' . tr('status_incorrect') . '</span>';
-                $nopictures = '<tr><td colspan="2"><div class="notice">' . tr('no_pictures_yet') . '</div></td></tr>';
-                $picturelines = '{lines}<tr><td colspan="2">&nbsp;</td></tr>';
 
                 $nomp3 = '<tr><td colspan="2"><div class="notice">' . tr('no_mp3_files') . '</div></td></tr>';
                 $mp3line = '<tr><td colspan="2">{seq_drop_mp3}<img src="images/free_icons/sound.png" class="icon32" alt=""  />&nbsp;<a target="_BLANK" href="{link}">{title}</a>&nbsp;&nbsp;<img src="images/actions/edit-16.png"  align="middle"  alt="" title="" /> [<a href="editmp3.php?uuid={uuid}" onclick="return check_if_proceed();">' . $edit . '</a>] <img src="images/log/16x16-trash.png" border="0" align="middle" class="icon16" alt="" title="" />[<a href="removemp3.php?uuid={uuid}" onclick="if (confirm(\'' . tr('ec_delete_mp3') . '\')) {return check_if_proceed();} else {return false;};">' . $remove . '</a>]</td></tr>';
@@ -137,7 +146,7 @@ if ($error == false) {
                 if (isset($_POST['type'])) {
                     if (( ($_POST['type'] == GeoCache::TYPE_VIRTUAL && $cache_record['type'] != GeoCache::TYPE_VIRTUAL ) ||
                             ($_POST['type'] == GeoCache::TYPE_WEBCAM && $cache_record['type'] != GeoCache::TYPE_WEBCAM ) ) &&
-                            !$usr['admin']) {
+                            !$loggedUser->hasOcTeamRole()) {
                         $_POST['type'] = $cache_record['type'];
                     }
                 }
@@ -270,7 +279,7 @@ if ($error == false) {
                 if ($allow_pw) {
                     $log_pw = isset($_POST['log_pw']) ? mb_substr($_POST['log_pw'], 0, 20) : $cache_record['logpw'];
                     // don't display log password for admins
-                    if ($cache_record['user_id'] == $usr['userid']) {
+                    if ($cache_record['user_id'] == $loggedUser->getUserId()) {
                         tpl_set_var('logpw_start', '');
                         tpl_set_var('logpw_end', '');
                     } else {
@@ -496,7 +505,10 @@ if ($error == false) {
                 //try to save to DB?
                 if (isset($_POST['submit'])) {
                     //prevent un archiving cache by non-admin users
-                    if($status_old == GeoCache::STATUS_ARCHIVED && !$usr['admin'] && $status!=GeoCache::STATUS_ARCHIVED) {
+                    if ($status_old == GeoCache::STATUS_ARCHIVED &&
+                        !$loggedUser->hasOcTeamRole() &&
+                        $status!=GeoCache::STATUS_ARCHIVED) {
+
                         $status_not_ok = true;
                     }
                     //all validations ok?
@@ -602,7 +614,7 @@ if ($error == false) {
                                 // generate automatic log about status cache
                                 GeoCacheLog::newLog(
                                     $cache->getCacheId(),
-                                    $usr['userid'],
+                                    $loggedUser->getUserId(),
                                     GeoCacheLog::LOGTYPE_TEMPORARYUNAVAILABLE,
                                     tr(GeoCacheLog::translationKey4CacheStatus(GeoCache::STATUS_UNAVAILABLE)));
                         }
@@ -612,7 +624,7 @@ if ($error == false) {
                                 // generate automatic log about status cache
                                 GeoCacheLog::newLog(
                                     $cache->getCacheId(),
-                                    $usr['userid'],
+                                    $loggedUser->getUserId(),
                                     GeoCacheLog::LOGTYPE_ARCHIVED,
                                     tr(GeoCacheLog::translationKey4CacheStatus(GeoCache::STATUS_ARCHIVED)));
                         }
@@ -622,7 +634,7 @@ if ($error == false) {
                                 // generate automatic log about status cache
                                 GeoCacheLog::newLog(
                                     $cache->getCacheId(),
-                                    $usr['userid'],
+                                    $loggedUser->getUserId(),
                                     GeoCacheLog::LOGTYPE_READYTOSEARCH,
                                     tr(GeoCacheLog::translationKey4CacheStatus(GeoCache::STATUS_READY)));
                         }
@@ -632,7 +644,7 @@ if ($error == false) {
                                 // generate automatic log about status cache
                                 GeoCacheLog::newLog(
                                     $cache->getCacheId(),
-                                    $usr['userid'],
+                                    $loggedUser->getUserId(),
                                     GeoCacheLog::LOGTYPE_ADMINNOTE,
                                     tr(GeoCacheLog::translationKey4CacheStatus(GeoCache::STATUS_BLOCKED)));
                         }
@@ -735,7 +747,7 @@ if ($error == false) {
                 }
                 tpl_set_var('terrainoptions', $terrain_options);
 
-                $cacheLimitByTypePerUser = GeoCache::getUserActiveCachesCountByType($usr['userid']);
+                $cacheLimitByTypePerUser = GeoCache::getUserActiveCachesCountByType($loggedUser->getUserId());
 
                 //build type options
                 $types = '';
@@ -743,7 +755,7 @@ if ($error == false) {
                 // do not provide change cache type options
                 // if config limit for current type is exceeded
                 if (
-                    !$usr['admin']
+                    !$loggedUser->hasOcTeamRole()
                     && isset($cacheLimitByTypePerUser[$cache_type])
                     && isset($config['cacheLimitByTypePerUser'][$cache_type])
                     && $cacheLimitByTypePerUser[$cache_type]
@@ -751,8 +763,7 @@ if ($error == false) {
                 ) {
                 } else {
                     foreach (GeoCacheCommons::CacheTypesArray() as $type) {
-
-                        if (!$usr['admin']) {
+                        if (!$loggedUser->hasOcTeamRole()) {
                             // block forbidden cache types
                             if (
                                 ($type != $cache_type)
@@ -858,9 +869,9 @@ if ($error == false) {
 
                 //Status
                 $statusoptions = '';
-                if (( ( $status_old == GeoCache::STATUS_ARCHIVED ||
-                        $status_old == GeoCache::STATUS_BLOCKED ) && !$usr['admin'] ) ||
-                        $status_old == GeoCache::STATUS_WAITAPPROVERS) {
+                if (( ( $status_old == GeoCache::STATUS_ARCHIVED || $status_old == GeoCache::STATUS_BLOCKED ) &&
+                    !$loggedUser->hasOcTeamRole() ) || $status_old == GeoCache::STATUS_WAITAPPROVERS) {
+
                     $disablestatusoption = ' disabled';
                 } else {
                     $disablestatusoption = '';
@@ -870,8 +881,9 @@ if ($error == false) {
                 foreach (GeoCache::CacheStatusArray() AS $tmpstatus) {
                     //hide id 4 => hidden by approvers, hide id 5 if it is not the current status
                     if (( $tmpstatus != GeoCache::STATUS_WAITAPPROVERS || $status_old == GeoCache::STATUS_WAITAPPROVERS ) &&
-                            ( $tmpstatus != GeoCache::STATUS_NOTYETAVAILABLE || $status_old == GeoCache::STATUS_NOTYETAVAILABLE ) &&
-                            ( $tmpstatus != GeoCache::STATUS_BLOCKED || $usr['admin'] )) {
+                        ( $tmpstatus != GeoCache::STATUS_NOTYETAVAILABLE || $status_old == GeoCache::STATUS_NOTYETAVAILABLE ) &&
+                        ( $tmpstatus != GeoCache::STATUS_BLOCKED || $loggedUser->hasOcTeamRole())) {
+
                         if ($tmpstatus == $status) {
                             $statusoptions .= '<option value="' . $tmpstatus . '" selected="selected">' . tr(GeoCache::CacheStatusTranslationKey($tmpstatus)) . '</option>';
                         } else {
@@ -912,58 +924,17 @@ if ($error == false) {
                     tpl_set_var('activation_form', '');
                 }
 
-                if ($cache_record['picturescount'] > 0) {
-                    $pictures = '';
-                    $thatquery = "SELECT `id`, `url`, `title`, `uuid`, `seq` FROM `pictures` WHERE `object_id`=:v1 AND `object_type`=2 ORDER BY seq, date_created";
-                    $params['v1']['value'] = (integer) $cache_id;
-                    $params['v1']['data_type'] = 'integer';
+                // prepare the list of pictures for thich geocache
+                $picList = OcPicture::getListForParent(OcPicture::TYPE_CACHE, $cache_id);
+                $view->setVar('picList', $picList);
+                $view->setVar('picParentId', $cache_id);
+                $view->setVar('picParentType', OcPicture::TYPE_CACHE);
 
-                    $s = $dbc->paramQuery($thatquery, $params);
-                    $rspictures_count = $dbc->rowCount($s);
-                    $rspictures_all = $dbc->dbResultFetchAll($s);
+                // prepare the upload model for pictures upload
+                /** @var UploadModel */
+                $uploadModel = UploadModel::PicUploadFactory(OcPicture::TYPE_CACHE, $cache_id);
+                $view->setVar('picsUploadModelJson', $uploadModel->getJsonParams());
 
-                    $thatquery = "SELECT `seq` FROM `pictures` WHERE `object_id`=:v1 AND `object_type`=2 ORDER BY `seq` DESC"; //get highest seq number for this cache
-                    $s = $dbc->paramQuery($thatquery, $params); //params are same as few lines above
-                    $max_seq_record = $dbc->dbResultFetch($s);
-
-                    unset($params);  //clear to avoid overlaping on next paramQuery (if any))
-                    $max_seq_number = (isset($max_seq_record ['seq']) ? $max_seq_record ['seq'] : 0);
-                    if ($max_seq_number < $rspictures_count) {
-                        $max_seq_number = $rspictures_count;
-                    }
-                    tpl_set_var('def_seq', $max_seq_number + 1); // set default seq for picture to be added (if link is click) - this line updated link to newpic.php)    )
-
-                    for ($i = 0; $i < $rspictures_count; $i++) {
-                        $pic_record = $rspictures_all[$i];
-
-                        $tmpline = '<tr class="form-group-sm">
-                                        <td colspan="2">
-                                            {seq_drop}
-                                            <img src="images/free_icons/picture.png" class="icon32" alt="" />
-                                            &nbsp;
-                                            <a href="'.htmlspecialchars($pic_record['url'], ENT_COMPAT, 'UTF-8').'" target="_blank">'.
-                                                htmlspecialchars($pic_record['title'], ENT_COMPAT, 'UTF-8')
-                                            .'</a>
-                                            &nbsp;&nbsp;
-                                            <img src="images/actions/edit-16.png" align="middle" alt="" title="" />
-                                            [<a href="editpic.php?uuid='.$pic_record['uuid'].'" onclick="return check_if_proceed();">' . $edit . '</a>]
-                                            <img src="images/log/16x16-trash.png" border="0" align="middle" class="icon16" alt="" title="" />
-                                            [<a href="'.SimpleRouter::getLink(PictureController::class, 'remove',[$pic_record['uuid']]).'"
-                                                onclick="if (confirm(\'' . tr('ec_delete_pic') . '\')) {
-                                                            return check_if_proceed();
-                                                         } else {return false;};">' . $remove . '</a>]
-                                        </td>
-                                    </tr>';
-                        $tmpline = mb_ereg_replace('{seq_drop}', build_drop_seq($i + 1, $pic_record['seq'], $max_seq_number, $pic_record['id'], 'pic'), $tmpline);
-                        $pictures .= $tmpline;
-                    }
-
-                    $pictures = mb_ereg_replace('{lines}', $pictures, $picturelines);
-                    tpl_set_var('pictures', $pictures);
-                } else {
-                    tpl_set_var('def_seq', 1); //set default sequence to 1 for add picture link (in case there is no picture att all yet))
-                    tpl_set_var('pictures', $nopictures);
-                }
                 //MP3 files only for type of cache:
                 if ($cache_record['type'] == GeoCache::TYPE_OTHERTYPE ||
                         $cache_record['type'] == GeoCache::TYPE_MULTICACHE ||
@@ -1141,14 +1112,14 @@ if ($error == false) {
         } else {
             //TODO: cache not exist
         }
-    }
-}
+
 unset($dbc);
 
 $view->loadJQuery();
 //make the template and send it out
 tpl_set_tplname('editcache');
 tpl_BuildTemplate();
+
 
 /**
  * if coordinates were changed, update altitude

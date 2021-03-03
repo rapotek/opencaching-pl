@@ -13,11 +13,13 @@ use src\Utils\Text\TextConverter;
 use src\Utils\DateTime\Year;
 use src\Utils\Uri\SimpleRouter;
 use src\Utils\Uri\OcCookie;
+use src\Utils\View\View;
 use src\Controllers\MeritBadgeController;
 use src\Utils\Text\Formatter;
 use src\Models\Admin\AdminNoteSet;
 use src\Models\User\UserStats;
 use src\Utils\Debug\StopWatch;
+use src\Models\ApplicationContainer;
 
 const ADMINNOTES_PER_PAGE = 10;
 
@@ -26,7 +28,8 @@ require_once (__DIR__.'/lib/common.inc.php');
 StopWatch::click('start');
 
 //user logged in?
-if ($usr == false) {
+$loggedUser = ApplicationContainer::GetAuthorizedUser();
+if (!$loggedUser) {
     $target = urlencode(tpl_get_current_page());
     tpl_redirect('login.php?target=' . $target);
     exit;
@@ -64,7 +67,7 @@ $cache_line_my_caches = '<li style="margin: -0.9em 0px 0.9em 0px; padding: 0px 0
 if (isset($_REQUEST['userid'])) {
     $user_id = $_REQUEST['userid'];
 } else {
-    $user_id = $usr['userid'];
+    $user_id = $loggedUser->getUserId();
 }
 
 require (__DIR__.'/src/Views/lib/icons.inc.php');
@@ -129,18 +132,18 @@ tpl_set_var('profile_img', $pimage);
 tpl_set_var('profile_info', $pinfo);
 
 $guide_info = '<br>';
-if ($user_id == $usr['userid']) {
+if ($user_id == $loggedUser->getUserId()) {
     // Number of recommendations
     $nrecom = XDb::xMultiVariableQueryValue(
         "SELECT SUM(topratings) as nrecom FROM caches WHERE `caches`.`user_id`= :1 ",
-        0, $usr['userid'] );
+        0, $loggedUser->getUserId());
 
     StopWatch::click(__LINE__);
 
     // new with recommendations
     $guides = OcConfig::instance()->getGuidesConfig();
 
-    if ($nrecom >= $guides['guideGotRecommendations'] && !$user->isGuide() && $user_id == $usr['userid']) {
+    if ($nrecom >= $guides['guideGotRecommendations'] && !$user->isGuide() && $user_id == $loggedUser->getUserId()) {
         $guide_info = '<div class="content-title-noshade box-blue"><table><tr><td><img style="margin-right: 10px;margin-left:10px;" src="/images/blue/info-b.png" alt="guide"></td><td>
             <span style="font-size:12px;"> ' . tr('guru_17') . '
             <a class="links" href="myprofile.php?action=change"> ' . tr('guru_18') . '</a>.
@@ -170,12 +173,10 @@ if (! $user->isActive()) {
 tpl_set_var('lastloginClass', $user->getLastLoginPeriodClass());
 
 //Admin Note (table only)
-if ($usr['admin']) {
+if ($loggedUser->hasOcTeamRole()) {
     $content .= '<div class="content2-container bg-blue02"><p class="content-title-noshade-size1">&nbsp;<img src="/images/blue/logs.png" class="icon32" alt="Cog Note" title="Cog Note"> ' . tr('admin_notes') . '</p></div>';
     $content .= '<div class="notice">'.tr('admin_notes_visible').'</div><p><a href="' . SimpleRouter::getLink('Admin.UserAdmin', 'index', $user_id) . '" class="links">'.tr('admin_user_management').' <img src="/images/misc/linkicon.png" alt="user admin"></a></p>';
     $adminNotes = AdminNoteSet::getNotesForUser($user, ADMINNOTES_PER_PAGE);
-
-
 
     if (empty($adminNotes)) {
         $content .= '<p>' . tr("admin_notes_no_infos") . '</p>';
@@ -203,13 +204,13 @@ if ($usr['admin']) {
         }
         $content .= '</table>';
     }
+
+    if (AdminNoteSet::getNotesForUserCount($user) > ADMINNOTES_PER_PAGE) {
+        $content .= '<a href="' . SimpleRouter::getLink('Admin.UserAdmin', 'index', $user_id) . '" class="btn btn-default btn-sm">' . tr('more') . '</a>';
+    }
 }
 
 StopWatch::click(__LINE__);
-
-if (AdminNoteSet::getNotesForUserCount($user) > ADMINNOTES_PER_PAGE) {
-    $content .= '<a href="' . SimpleRouter::getLink('Admin.UserAdmin', 'index', $user_id) . '" class="btn btn-default btn-sm">' . tr('more') . '</a>';
-}
 
 if (Year::isPrimaAprilisToday() && OcConfig::isPAUserStatsRandEnabled()) {
     $act = rand(-10, 10);
@@ -375,7 +376,7 @@ if ($seek == 0) {
     if ($recomendf == 0) {
         $content .= '</p>';
     } else {
-        if ($usr['userid'] == $user_id) {
+        if ($loggedUser->getUserId() == $user_id) {
             $link_togo = SimpleRouter::getLink(MyRecommendationsController::class, 'recommendations');
         } else {
             $link_togo = SimpleRouter::getLink(MyRecommendationsController::class, 'recommendations', $user_id);
@@ -443,7 +444,7 @@ if ($seek == 0) {
     <div id="ftfDiv" style="display:none"></div></center><input type="hidden" id="userId" value="' . $user_id . '">';
 
     //------------ begin owner section
-    //          if ($user_id == $usr['userid'])
+    //          if ($user_id == $loggedUser->getUserId())
     //          {
     StopWatch::click(__LINE__);
 
@@ -759,7 +760,7 @@ if ($user->getHiddenGeocachesCount() == 0) {
 
             // ukrywanie nicka autora komentarza COG przed zwykłym userem
             // (Łza)
-            if (($record_logs['log_type'] == 12) && (!$usr['admin'])) {
+            if (($record_logs['log_type'] == 12) && (!$loggedUser->hasOcTeamRole())) {
                 $record_logs['user_name'] = 'Centrum Obsługi Geocachera';
                 $record_logs['user_id'] = 0;
             }
@@ -784,7 +785,7 @@ if ($user->getHiddenGeocachesCount() == 0) {
 StopWatch::click(__LINE__);
 
 //  ----------------- begin  owner section  ----------------------------------
-if ($user_id == $usr['userid'] || $usr['admin']) {
+if ($user_id == $loggedUser->getUserId() || $loggedUser->hasOcTeamRole()) {
     $rscheck = XDb::xMultiVariableQueryValue(
         "SELECT count(*) FROM caches
         WHERE (status = 4 OR status = 5 OR status = 6) AND `user_id`= :1", 0, $user_id);
@@ -879,11 +880,6 @@ function buildGeocacheHtml(GeoCache $geocache, $html)
 
 function buildMeritBadges($user_id) {
 
-global $content_table_badge, $content_row_pattern_badge, $content_tip_badge, $content_element_badge;
-
-require(__DIR__.'/src/Views/viewprofile.inc.php');
-
-
 $meritBadgeCtrl = new MeritBadgeController();
 $userCategories = $meritBadgeCtrl->buildArrayUserCategories($user_id);
 
@@ -904,8 +900,24 @@ foreach ($userCategories as $oneCategory) {
 
         $short_desc = mb_ereg_replace( "'", "\\'", $short_desc);
 
-        $element=$content_element_badge;
-        $element=mb_ereg_replace('{content_tip}', $content_tip_badge, $element);
+        $element='<div class="Badge-div-element-small">
+        <a href="badge.php?badge_id={badge_id}&user_id={user_id}" onmouseover="Tip(\'{content_tip}\', PADDING,10)" onmouseout="UnTip()">
+            <div class="Badge-pie-progress-small" role="progressbar" data-goal="{progresbar_curr_val}" data-trackcolor="#d9d9d9" data-barcolor="{progresbar_color}" data-barsize="{progresbar_size}" aria-valuemin="0" aria-valuemax="{progresbar_next_val}">
+            <div class="pie_progress__content"><img src="{picture}" class="Badge-pic-small" /><br>
+            </div>
+            </div>
+        </a>
+        </div>';
+
+        $element=mb_ereg_replace('{content_tip}',
+            "<div style =\'width:500px;\'><img src=\'{picture}\' style= \'float: left;margin-right:20px;\' /> \\
+             <p style=\'font-size:20px; font-weight:bold;\'> {name} <br>\\
+             <span style=\'font-size:13px; font-weight:normal; font-style:italic;\'> {short_desc} </span></p> \\
+             <p style=\'font-size:13px;font-weight:normal;\'>\\"
+            .tr('merit_badge_level_name').": <b>{level_name}</b><br>\\"
+            .tr('merit_badge_number').": <b>{curr_val}</b><br>\\"
+            .tr('merit_badge_next_level_threshold').": <b>{next_val}</b><br>\\
+             </p></div>", $element);
         $element=mb_ereg_replace('{name}', $oneBadge->getOBadge()->getName(), $element);
         $element=mb_ereg_replace('{short_desc}', $short_desc , $element);
         $element=mb_ereg_replace('{picture}', $oneBadge->getPicture(), $element );
@@ -922,11 +934,19 @@ foreach ($userCategories as $oneCategory) {
         $content_badge.= $element;
     }
 
-    $content_badge_rows .= mb_ereg_replace('{content_badge}', $content_badge, $content_row_pattern_badge);
+    $content_badge_rows .= mb_ereg_replace('{content_badge}', $content_badge,
+        "<tr class='Badge-table-view'><td><span class='Badge-category-small'>{category_table}</span><br>{content_badge}</tr></td>");
+
     $content_badge_rows = mb_ereg_replace('{category_table}', $oneCategory->getName(), $content_badge_rows);
 }
 
-$content .= mb_ereg_replace('{content_badge_rows}', $content_badge_rows, $content_table_badge);
+$content .= mb_ereg_replace('{content_badge_rows}', $content_badge_rows, '
+                <table width="770px">
+                    <tbody>
+                    {content_badge_rows}
+                    </tbody>
+                </table>
+                <br>');
 $content .= "<a class='links'  href='user_badges.php?user_id=$user_id'>[".tr('merit_badge_show_details')."]</a>&nbsp;&nbsp;&nbsp;&nbsp;";
 $content .= "<a class='links'  href='user_badges.php?user_id=999999'>[".tr('merit_badge_show_list')."]</a><br><br>";
 return $content;
