@@ -13,25 +13,26 @@ use src\Utils\Debug\Debug;
 use src\Utils\EventHandler\EventHandler;
 use src\Utils\I18n\I18n;
 use src\Utils\Text\Validator;
+use src\Utils\Gis\Countries;
 
 require_once (__DIR__.'/lib/common.inc.php');
 
 $ocWP = $GLOBALS['oc_waypoint'];
 $no_tpl_build = false;
 
-// Preprocessing
 $view = tpl_getView();
 
-if ($usr == false) { // user logged in?
+// user logged in?
+$loggedUser = ApplicationContainer::GetAuthorizedUser();
+if (!$loggedUser) {
     $target = urlencode(tpl_get_current_page());
     $view->redirect('/login.php?target=' . $target);
-    exit();
+    exit;
 }
+
 $db = OcDb::instance();
 
-$user = new User(array(
-    'userId' => $usr['userid']
-));
+$user = $loggedUser;
 
 if (isset($_REQUEST['newcache_info']) && $_REQUEST['newcache_info'] != 1) {
     // set here the template to process
@@ -49,17 +50,16 @@ if (! $user->canCreateNewCache()) {
     exit();
 }
 
-require_once (__DIR__.'/lib/caches.inc.php');
 require_once (__DIR__.'/src/Views/newcache.inc.php');
 
 $errors = false; // set if there was any errors
 
 $rsnc = XDb::xSql("SELECT COUNT(`caches`.`cache_id`) as num_caches FROM `caches`
-            WHERE `user_id` = ? AND status = 1", $usr['userid']);
+            WHERE `user_id` = ? AND status = 1", $loggedUser->getUserId());
 $record = XDb::xFetchArray($rsnc);
 $num_caches = $record['num_caches'];
 
-$cacheLimitByTypePerUser = GeoCache::getUserActiveCachesCountByType($usr['userid']);
+$cacheLimitByTypePerUser = GeoCache::getUserActiveCachesCountByType($loggedUser->getUserId());
 
 if ($num_caches < OcConfig::getNeedApproveLimit()) {
     // user needs approvement for first 3 caches to be published
@@ -316,23 +316,25 @@ if ($sel_type == GeoCache::TYPE_VIRTUAL || $sel_type == GeoCache::TYPE_WEBCAM ||
 }
 
 // typeoptions
-
-$cache = cache::instance();
-$cacheTypes = $cache->getCacheTypes();
 $types = '<option value="-1" disabled selected="selected">' . tr('select_one') . '</option>';
-foreach ($cacheTypes as $typeId => $type) {
+foreach (GeoCacheCommons::CacheTypesArray() as $typeId) {
     /* block creating forbidden cache types */
-    if (in_array($typeId, $config['forbidenCacheTypes'])) {
+    if (in_array($typeId, OcConfig::getNoNewCacheOfTypesArray())) {
         continue;
     }
+
     /* apply cache limit by type per user */
-    if (isset($config['cacheLimitByTypePerUser'][$typeId]) && isset($cacheLimitByTypePerUser[$typeId]) && $cacheLimitByTypePerUser[$typeId] >= $config['cacheLimitByTypePerUser'][$typeId]) {
+    if (isset($config['cacheLimitByTypePerUser'][$typeId]) &&
+        isset($cacheLimitByTypePerUser[$typeId]) &&
+        $cacheLimitByTypePerUser[$typeId] >= $config['cacheLimitByTypePerUser'][$typeId]) {
         continue;
     }
     if ($typeId == $sel_type) {
-        $types .= '<option value="' . $typeId . '" selected="selected">' . tr($type['translation']) . '</option>';
+        $types .= '<option value="' . $typeId . '" selected="selected">' .
+            tr(GeoCacheCommons::CacheTypeTranslationKey($typeId)) . '</option>';
     } else {
-        $types .= '<option value="' . $typeId . '">' . tr($type['translation']) . '</option>';
+        $types .= '<option value="' . $typeId . '">' .
+            tr(GeoCacheCommons::CacheTypeTranslationKey($typeId)) . '</option>';
     }
 }
 tpl_set_var('typeoptions', $types);
@@ -348,27 +350,24 @@ buildDescriptionLanguageSelector($show_all_langs, I18n::getCurrentLang(), $confi
 
 // countryoptions
 $countriesoptions = '';
+$defaultCountryList = [];
 if ($show_all_countries == 1) {
     tpl_set_var('show_all_countries', '1');
     tpl_set_var('show_all_countries_submit', '');
 
-    $s = $db->simpleQuery("SELECT `short` FROM `countries` ORDER BY `short` ASC");
-    $dbResult = $db->dbResultFetchAll($s);
-
-    $defaultCountryList = array();
-    foreach ($dbResult as $value) {
-        $defaultCountryList[] = $value['short'];
-    }
+    // get all countries codes
+    $defaultCountryList = Countries::getCountriesList();
 } else {
     tpl_set_var('show_all_countries', '0');
     tpl_set_var('show_all_countries_submit', '<input class="btn btn-default btn-sm" type="submit" name="show_all_countries_submit" value="' . $show_all . '"/>');
+    $defaultCountryList = Countries::getCountriesList(true);
 }
 
 foreach ($defaultCountryList as $record) {
     if ($record == $sel_country) {
-        $countriesoptions .= '<option value="' . htmlspecialchars($record, ENT_COMPAT, 'UTF-8') . '" selected="selected">' . tr($record) . '</option>';
+        $countriesoptions .= '<option value="' . $record . '" selected="selected">' . tr($record) . '</option>';
     } else {
-        $countriesoptions .= '<option value="' . htmlspecialchars($record, ENT_COMPAT, 'UTF-8') . '">' . tr($record) . '</option>';
+        $countriesoptions .= '<option value="' . $record . '">' . tr($record) . '</option>';
     }
     $countriesoptions .= "\n";
 }
@@ -609,7 +608,7 @@ if (isset($_POST['submitform'])) {
     // cache-type
     $type_not_ok = false;
     // block forbiden cache types
-    if ($sel_type == - 1 || in_array($sel_type, $config['forbidenCacheTypes'])) {
+    if ($sel_type == - 1 || in_array($sel_type, OcConfig::getNoNewCacheOfTypesArray())) {
         tpl_set_var('type_message', $type_not_ok_message);
         $error = true;
         $type_not_ok = true;
@@ -687,7 +686,7 @@ if (isset($_POST['submitform'])) {
                         `founds` = 0, `notfounds` = 0, `watcher` = 0, `notes` = 0, `last_found` = NULL, `size` = ?, `difficulty` = ?,
                         `terrain` = ?, `uuid` = ?, `logpw` = ?, `search_time` = ?, `way_length` = ?, `wp_gc` = ?,
                         `wp_nc` = ?, `wp_ge` = ?, `wp_tc` = ?, `node` = ? ",
-            $usr['userid'], $name, $longitude, $latitude, $sel_type, $sel_status, $sel_country,
+            $loggedUser->getUserId(), $name, $longitude, $latitude, $sel_type, $sel_status, $sel_country,
             date('Y-m-d', $hidden_date), $activation_date, $sel_size, $difficulty, $terrain, $cache_uuid,
             $log_pw, $search_time, $way_length, $wp_gc, $wp_nc, $wp_ge, $wp_tc, OcConfig::getSiteNodeId());
 
@@ -695,9 +694,13 @@ if (isset($_POST['submitform'])) {
 
         // insert cache_location
         $code1 = $sel_country;
-        $eLang = XDb::xEscape(I18n::getCurrentLang());
-        $adm1 = XDb::xMultiVariableQueryValue("SELECT `countries`.$eLang FROM `countries`
-                                    WHERE `countries`.`short`= :1 ", 0, $code1);
+        if (I18n::isTranslationAvailable($code1)){
+            $adm1 = tr($code1);
+        } else {
+            Debug::errorLog("Unknown country translation: $code1");
+            $adm1 = $code1;
+        }
+
         // check if selected country has no districts, then use $default_region
         if ($sel_region == - 1) {
             $sel_region = $default_region;
@@ -771,7 +774,7 @@ function buildCacheSizeSelector($sel_type, $sel_size)
     $sizes = '<option value="-1" disabled selected="selected">' . tr('select_one') . '</option>';
     foreach (GeoCacheCommons::CacheSizesArray() as $size) {
 
-        if (!in_array($size, OcConfig::instance()->getGeoCacheConfig('enabledSizes'))) {
+        if (!in_array($size, OcConfig::getEnabledCacheSizesArray())) {
             continue;
         }
 

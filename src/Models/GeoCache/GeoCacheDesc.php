@@ -128,6 +128,11 @@ class GeoCacheDesc extends BaseObject
         return $this->hint;
     }
 
+    public function getId()
+    {
+        return $this->id;
+    }
+
     public function getAdminComment(){
         return $this->rr_comment;
     }
@@ -143,9 +148,9 @@ class GeoCacheDesc extends BaseObject
 
         self::db()->multiVariableQuery(
             "UPDATE cache_desc SET
-                rr_comment = CONCAT('$formattedComment', rr_comment),
+                rr_comment = CONCAT(:1, rr_comment),
                 last_modified = NOW()
-            WHERE cache_id= :1 ", $geoCache->getCacheId());
+            WHERE cache_id= :2 ", $formattedComment, $geoCache->getCacheId());
 
 
         EmailSender::sendNotifyOfOcTeamCommentToCache($geoCache, $author, $comment);

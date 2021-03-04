@@ -1,7 +1,13 @@
 <?php
 
 /**
- * $map['jsConfig'] constains JS code with configuration for openlayers
+ * Configuration of maps in the OC code
+ *
+ * Those are configuration overrides for OCPL node only.
+ */
+
+/**
+ * $map['jsConfig'] contains JS code with configuration for openlayers
  * Be sure that all changes here are well tested.
  */
 $map['jsConfig'] = "
@@ -19,7 +25,7 @@ $map['jsConfig'] = "
 
     UMP: new ol.layer.Tile ({
         source: new ol.source.TileImage ({
-            url: 'http://tiles.ump.waw.pl/ump_tiles/{z}/{x}/{y}.png',
+            url: 'https://tiles.ump.waw.pl/ump_tiles/{z}/{x}/{y}.png',
             attributions: \"&copy; Mapa z <a href='http://ump.waw.pl/' target='_blank'>UMP-pcPL</a>\",
         })
     }),
@@ -83,3 +89,41 @@ $map['jsConfig'] = "
     }),
 }
 ";
+
+/**
+ * Coordinates of the default map center - used by default by many maps in service
+ * Format: float number
+ */
+$map['mapDefaultCenterLat'] = 52.13;
+$map['mapDefaultCenterLon'] = 19.20;
+
+/**
+ * Zoom of the static map from startPage
+ */
+$map['startPageMapZoom'] = 5;
+
+/**
+ * Dimensions of the static map from startPage[width,height]
+ */
+$map['startPageMapDimensions'] = [250, 260];
+
+/**
+ * Links to external maps used at least at viewpage
+ * (to disable map - just add key $map['external']['OSMapa']['enabled'] = false;)
+ *
+ * Url rules:
+ *  The following parameters are available for replacement using
+ * printf style syntax, in this order
+ *
+ *    1          2         3            4           5         6
+ * latitude, longitude, cache_id, cache_code, cache_name, link_text
+ *
+ * coordinates are float numbers (%f), the rest are strings (%s)
+ * cache_name is urlencoded
+ * escape % using %% (printf syntax)
+ *
+ * The level 3 key is also used as link_text.
+ */
+$map['external']['OSMapa']['enabled'] = true;     // PL specific
+$map['external']['UMP']['enabled'] = true;     // PL specific
+$map['external']['Szukacz']['enabled'] = true;     // PL specific

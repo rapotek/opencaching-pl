@@ -8,7 +8,7 @@ namespace src\Controllers;
 
 use src\Utils\Uri\Uri;
 use src\Models\ChunkModels\PaginationModel;
-use src\Models\ChunkModels\ListOfCaches\Column_CacheLastLog;
+use src\Models\ChunkModels\ListOfCaches\Column_CacheLog;
 use src\Models\ChunkModels\ListOfCaches\Column_CacheName;
 use src\Models\ChunkModels\ListOfCaches\Column_CacheTypeIcon;
 use src\Models\ChunkModels\ListOfCaches\Column_EllipsedText;
@@ -82,7 +82,7 @@ class CacheNotesController extends BaseController
                         'cacheStatus' => $row['status'],
                     ];
                 }));
-            $model->addColumn(new Column_CacheLastLog(tr('myNotes_lastLogEntry'),
+            $model->addColumn(new Column_CacheLog(tr('myNotes_lastLogEntry'),
                 function($row){
                     if(isset($row['llog_id'])){
                         return [
@@ -120,7 +120,7 @@ class CacheNotesController extends BaseController
 
             $model->addColumn(new Column_SimpleText(tr('myNotes_modCacheCoords'),
                 function($row){
-                    if(isset($row['coords'])){
+                    if(isset($row['coords']) && $row['coords']){
                         return $row['coords']->getAsText();
                     }else{
                         return '-';
@@ -217,7 +217,7 @@ class CacheNotesController extends BaseController
 
         // fill caches data
         $cacheFields = ['cache_id', 'name', 'type', 'status', 'wp_oc'];
-        foreach ( MultiCacheStats::getGeocachesById($cacheIds, $cacheFields) as $c){
+        foreach ( MultiCacheStats::getGeocachesDataById($cacheIds, $cacheFields) as $c){
             foreach($cacheFields as $col){
                 $result[ $c['cache_id'] ][$col] = $c[$col];
             }

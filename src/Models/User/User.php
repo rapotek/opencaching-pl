@@ -1,11 +1,14 @@
 <?php
 namespace src\Models\User;
 
+use ArrayObject;
+use DateTime;
 use src\Utils\Generators\TextGen;
 use src\Utils\Generators\Uuid;
 use src\Models\Coordinates\Coordinates;
 use src\Models\GeoCache\GeoCache;
 use src\Models\OcConfig\OcConfig;
+use src\Utils\Debug\Debug;
 
 /**
  * Description of user
@@ -36,24 +39,24 @@ class User extends UserCommons
     /** @var boolean */
     private $newCachesNoLimit = null;
 
-    /** @var $geocaches \ArrayObject() */
+    /** @var $geocaches ArrayObject() */
     private $geocaches = null;
 
-    /** @var $geocachesNotPublished \ArrayObject() */
+    /** @var $geocachesNotPublished ArrayObject() */
     private $geocachesNotPublished = null;
 
-    /** @var $geocachesWaitApprove \ArrayObject() */
+    /** @var $geocachesWaitApprove ArrayObject() */
     private $geocachesWaitApprove = null;
 
-    /** @var $geocachesBlocked \ArrayObject() */
+    /** @var $geocachesBlocked ArrayObject() */
     private $geocachesBlocked = null;
 
-    /** @var \DateTime */
+    /** @var DateTime */
     private $dateCreated;
 
     private $description;
 
-    /** @var \DateTime */
+    /** @var DateTime */
     private $lastLogin = null;
     private $isActive = null;
 
@@ -224,7 +227,7 @@ class User extends UserCommons
                     $this->profileUrl = $value;
                     break;
                 default:
-                    error_log(__METHOD__ . ": Unknown field: $field (value: $value)");
+                    Debug::errorLog("Unknown field: $field (value: $value)");
             }
         }
 
@@ -339,7 +342,7 @@ class User extends UserCommons
                     $this->rulesConfirmed = boolval($value);
                     break;
                 case 'date_created':
-                    $this->dateCreated = new \DateTime($value);
+                    $this->dateCreated = new DateTime($value);
                     break;
                 case 'description':
                     $this->description = $value;
@@ -348,7 +351,7 @@ class User extends UserCommons
                     if (empty($value) || $value == '0000-00-00 00:00:00') {
                         $this->lastLogin = null;
                     } else {
-                        $this->lastLogin = new \DateTime($value);
+                        $this->lastLogin = new DateTime($value);
                     }
                     break;
                 case 'is_active_flag':
@@ -382,7 +385,7 @@ class User extends UserCommons
                     break;
 
                 default:
-                    error_log(__METHOD__ . ": Unknown column: $key");
+                    Debug::errorLog("Unknown column: $key");
             }
         }
 
@@ -554,7 +557,7 @@ class User extends UserCommons
     public function getGeocaches()
     {
         if ($this->geocaches === null) {
-            $this->geocaches = new \ArrayObject;
+            $this->geocaches = new ArrayObject;
 
             $stmt = $this->db->multiVariableQuery(
                 "SELECT * FROM `caches` where `user_id` = :1 ", $this->userId);
@@ -580,7 +583,7 @@ class User extends UserCommons
     public function appendNotPublishedGeocache(GeoCache $geocache)
     {
         if ($this->geocachesNotPublished === null) {
-            $this->geocachesNotPublished = new \ArrayObject;
+            $this->geocachesNotPublished = new ArrayObject;
         }
         $this->geocachesNotPublished->append($geocache);
     }
@@ -588,7 +591,7 @@ class User extends UserCommons
     public function getGeocachesNotPublished()
     {
         if ($this->geocachesNotPublished === null) {
-            $this->geocachesNotPublished = new \ArrayObject;
+            $this->geocachesNotPublished = new ArrayObject;
             $this->getGeocaches();
         }
         return $this->geocachesNotPublished;
@@ -597,7 +600,7 @@ class User extends UserCommons
     public function appendWaitApproveGeocache(GeoCache $geocache)
     {
         if ($this->geocachesWaitApprove === null) {
-            $this->geocachesWaitApprove = new \ArrayObject;
+            $this->geocachesWaitApprove = new ArrayObject;
         }
         $this->geocachesWaitApprove->append($geocache);
     }
@@ -605,7 +608,7 @@ class User extends UserCommons
     public function getGeocachesWaitApprove()
     {
         if ($this->geocachesWaitApprove === null) {
-            $this->geocachesWaitApprove = new \ArrayObject;
+            $this->geocachesWaitApprove = new ArrayObject;
             $this->getGeocaches();
         }
         return $this->geocachesWaitApprove;
@@ -614,7 +617,7 @@ class User extends UserCommons
     public function appendBlockedGeocache(GeoCache $geocache)
     {
         if ($this->geocachesBlocked === null) {
-            $this->geocachesBlocked = new \ArrayObject;
+            $this->geocachesBlocked = new ArrayObject;
         }
         $this->geocachesBlocked->append($geocache);
     }
@@ -622,7 +625,7 @@ class User extends UserCommons
     public function getGeocachesBlocked()
     {
         if ($this->geocachesBlocked === null) {
-            $this->geocachesBlocked = new \ArrayObject;
+            $this->geocachesBlocked = new ArrayObject;
             $this->getGeocaches();
         }
         return $this->geocachesBlocked;
@@ -734,7 +737,7 @@ class User extends UserCommons
     }
 
     /**
-     * @return \DateTime
+     * @return DateTime
      */
     public function getDateCreated()
     {
@@ -869,11 +872,11 @@ class User extends UserCommons
 
         return (null !== self::db()->multiVariableQuery('
             INSERT INTO `user`
-                (`username`, `password`, `email`, `last_modified`,
+                (`username`, `password`, `email`, `role`, `last_modified`,
                 `is_active_flag`, `date_created`, `uuid`, `activation_code`,
                 `node`, `rules_confirmed`, `statpic_text`)
             VALUES
-                (:1, :2, :3, NOW(), 0 , NOW(), :4, :5, :6, :7, :8)
+                (:1, :2, :3, \'\', NOW(), 0 , NOW(), :4, :5, :6, :7, :8)
             ', $username, hash('sha512', md5($password)),
             $email, Uuid::create(), TextGen::randomText(13),
             OcConfig::getSiteNodeId(), boolval($rulesConfirmed),
@@ -935,7 +938,7 @@ class User extends UserCommons
             return 'unknown';
         }
 
-        $dateDiff = $this->getLastLoginDate()->diff(new \DateTime());
+        $dateDiff = $this->getLastLoginDate()->diff(new DateTime());
         $monthsDiff = ($dateDiff->y * 12) + $dateDiff->m;
 
         if ($monthsDiff > 12) {
@@ -962,7 +965,7 @@ class User extends UserCommons
             return 'text-color-dark';
         }
 
-        $dateDiff = $this->getLastLoginDate()->diff(new \DateTime());
+        $dateDiff = $this->getLastLoginDate()->diff(new DateTime());
         $monthsDiff = ($dateDiff->y * 12) + $dateDiff->m;
 
         if ($monthsDiff > 12) {
@@ -976,4 +979,41 @@ class User extends UserCommons
         }
     }
 
+
+    /**
+     * Returns array with statPicText and statPicLogo
+     *
+     * @return array
+     */
+    public function getStatPicDataArr()
+    {
+        $row = $this->db->dbResultFetchOneRowOnly(
+            $this->db->multiVariableQuery(
+                "SELECT statpic_text, statpic_logo FROM user WHERE user_id=:1 LIMIT 1",
+                $this->getUserId()));
+
+        return [$row['statpic_text'],$row['statpic_logo']];
+    }
+
+    /**
+     * Update user statPic
+     * (small banner with user statistics)
+     *
+     * @param int    $statPicLogo
+     * @param string $statPicText
+     */
+    public function changeStatPic($statPicLogo, $statPicText)
+    {
+        $this->db->multiVariableQuery (
+            "UPDATE user SET statpic_text=:1, statpic_logo=:2 WHERE user_id=:3 ",
+            $statPicText, $statPicLogo, $this->getUserId());
+
+        // delete previous statPic for the user
+        $this->deleteUserStatpic();
+    }
+
+    public function deleteUserStatpic()
+    {
+        self::deleteStatpic($this->getUserId());
+    }
 }

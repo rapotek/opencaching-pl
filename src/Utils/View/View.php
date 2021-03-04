@@ -1,15 +1,17 @@
 <?php
+
 namespace src\Utils\View;
 
-use src\Utils\DateTime\Year;
-use src\Models\ApplicationContainer;
-use src\Utils\Debug\Debug;
 use src\Controllers\PageLayout\MainLayoutController;
+use src\Models\ApplicationContainer;
+use src\Utils\DateTime\Year;
+use src\Utils\Debug\Debug;
 use src\Utils\I18n\CrowdinInContextMode;
-use src\Utils\Uri\SimpleRouter;
 use src\Utils\I18n\I18n;
+use src\Utils\Uri\SimpleRouter;
 
-class View {
+class View
+{
 
     const TPL_DIR = __DIR__ . '/../../../src/Views';
     const CHUNK_DIR = self::TPL_DIR . '/chunks/';
@@ -17,6 +19,7 @@ class View {
     //NOTE: local View vars should be prefixed by "_"
 
     private $_template = null;              // template used by current view
+    private $_subtitle = '';                // Page subtitle
 
     private $_googleAnalyticsKey = '';      // GA key loaded from config
 
@@ -31,6 +34,8 @@ class View {
     private $_showGdprPage = false;
     private $_showVideoBannerState = false;
 
+    private $_redirectToMainPageAfterLogin = false;
+
     private $_headerChunks = []; // chunks to load in <head> of the page
 
     public function __construct()
@@ -38,7 +43,7 @@ class View {
 
         // load google analytics key from the config
         $this->_googleAnalyticsKey = isset($GLOBALS['googleAnalytics_key']) ?
-                $GLOBALS['googleAnalytics_key'] : '';
+            $GLOBALS['googleAnalytics_key'] : '';
 
         $this->handleCrowdinInContextMode();
     }
@@ -47,18 +52,20 @@ class View {
      * Set given variable as local View variable
      * (inside template only View variables are accessible)
      *
-     *
-     * @param String $varName
+     * @param string $varName
      * @param  $varValue
+     * @return View
      */
     public function setVar($varName, $varValue)
     {
         if (property_exists($this, $varName)) {
-            $this->error("Can't set View variable with name: ".$varName);
-            return;
+            $this->error("Can't set View variable with name: " . $varName);
+            return $this;
         }
 
         $this->$varName = $varValue;
+
+        return $this;
     }
 
     public function __call($method, $args)
@@ -83,9 +90,9 @@ class View {
     public function callChunk($chunkName, ...$args)
     {
 
-        $method = $chunkName.'Chunk';
+        $method = $chunkName . 'Chunk';
 
-        if (! property_exists($this, $method)) {
+        if (!property_exists($this, $method)) {
             $func = self::getChunkFunc($chunkName);
             $this->$method = $func;
         }
@@ -110,7 +117,7 @@ class View {
 
     public static function getChunkFunc($chunkName)
     {
-        return require(self::CHUNK_DIR.$chunkName.'.tpl.php');
+        return require(self::CHUNK_DIR . $chunkName . '.tpl.php');
     }
 
     /**
@@ -123,9 +130,9 @@ class View {
      */
     public function callSubTpl($subTplPath)
     {
-        $subTplFile = self::TPL_DIR.$subTplPath.'.tpl.php';
+        $subTplFile = self::TPL_DIR . $subTplPath . '.tpl.php';
 
-        if (! is_file($subTplFile)) {
+        if (!is_file($subTplFile)) {
             $this->errorLog("Trying to call unknown sub-template: $subTplFile");
             return '';
         }
@@ -138,7 +145,7 @@ class View {
 
     public function handleCrowdinInContextMode()
     {
-        if(!CrowdinInContextMode::enabled()){
+        if (!CrowdinInContextMode::enabled()) {
             // crowdin-in-context mode is not enabled
             return;
         }
@@ -147,28 +154,48 @@ class View {
         $this->addHeaderChunk('crowdinInContext');
     }
 
+    /**
+     * @return View
+     */
     public function loadJQuery()
     {
         $this->_loadJQuery = true;
+
+        return $this;
     }
 
+    /**
+     * @return View
+     */
     public function loadJQueryUI()
     {
         $this->_loadJQueryUI = true;
         $this->_loadJQuery = true; // jQueryUI needs jQuery!
+
+        return $this;
     }
 
+    /**
+     * @return View
+     */
     public function loadTimepicker()
     {
         $this->_loadTimepicker = true;
         $this->_loadJQueryUI = true;
         $this->_loadJQuery = true;
+
+        return $this;
     }
 
+    /**
+     * @return View
+     */
     public function loadFancyBox()
     {
         $this->_loadFancyBox = true;
         $this->_loadJQuery = true; // fancyBox needs jQuery!
+
+        return $this;
     }
 
     /**
@@ -204,7 +231,7 @@ class View {
 
     private function error($message)
     {
-        error_log($message);
+        Debug::errorLog($message);
     }
 
 
@@ -220,19 +247,18 @@ class View {
     public function redirect($uri)
     {
         SimpleRouter::redirect($uri);
+        exit;
+    }
+
+    public function redirectAndExit($uri)
+    {
+        $this->redirect($uri);
+        exit;
     }
 
     public function getSeasonCssName()
     {
-
-        $season = Year::GetSeasonName();
-        switch ($season) { //validate - for sure :)
-            case 'spring':
-            case 'winter':
-            case 'autumn':
-            case 'summer':
-                return $season;
-        }
+        return Year::GetSeasonName();
     }
 
     public function getLang()
@@ -250,7 +276,6 @@ class View {
 
     /**
      * @param boolean $state
-     * @return boolean
      */
     public function setShowGdprPage($state)
     {
@@ -301,12 +326,29 @@ class View {
     }
 
     /**
+     * Set if user after login in top page form should be redirected into main page
+     * or current (shown before "Login" click) page. Default is false.
+     *
+     * @param boolean $state
+     * @return View
+     */
+    public function setRedirectToMainPageAfterLogin($state)
+    {
+        $this->_redirectToMainPageAfterLogin = boolval($state);
+        return $this;
+    }
+
+    /**
      * Add css which will be loaded in page header
-     * @param $url - url to css
+     * @param string $css_url - url to css
+     * @return View
      */
     public function addLocalCss($css_url)
     {
         $this->_localCss[] = $css_url;
+        $this->_localCss = array_unique($this->_localCss);
+
+        return $this;
     }
 
     public function getLocalCss()
@@ -319,6 +361,7 @@ class View {
      * @param string $jsUrl - url to js Script
      * @param boolean $async - load script asynchronous
      * @param boolean $defer - load script after the page has loaded
+     * @return View
      */
     public function addLocalJs($jsUrl, $async = false, $defer = false)
     {
@@ -327,6 +370,9 @@ class View {
             'async' => $async,
             'defer' => $defer
         ];
+        $this->_localJs = array_unique($this->_localJs, SORT_REGULAR);
+
+        return $this;
     }
 
     public function getLocalJs()
@@ -335,16 +381,16 @@ class View {
     }
 
     /**
-     * Add chunk which shold be called in page header
+     * Add chunk which should be called in page header
      *
      * @param string $chunkName - chunk name
      * @param array $args - array of chunk arguments
      */
     public function addHeaderChunk($chunkName, array $args = null)
     {
-        if(is_null($args)){
+        if (is_null($args)) {
             $this->_headerChunks[$chunkName] = [];
-        }else{
+        } else {
             $this->_headerChunks[$chunkName] = $args;
         }
     }
@@ -357,12 +403,15 @@ class View {
     /**
      * Set template name (former tpl_set_tplname())
      * @param string $tplName
+     * @return View
      */
     public function setTemplate($tplName)
     {
         //TODO: refactoring needed but this is still this way
         tpl_set_tplname($tplName);
         $this->_template = $tplName;
+
+        return $this;
     }
 
     /**
@@ -395,7 +444,7 @@ class View {
         if (is_null($layoutTemplate)) {
             $layoutTemplate = MainLayoutController::MAIN_TEMPLATE;
             MainLayoutController::init(); // init vars for main-layout
-        } else if($layoutTemplate = MainLayoutController::MINI_TEMPLATE) {
+        } else if ($layoutTemplate = MainLayoutController::MINI_TEMPLATE) {
             MainLayoutController::init();
         }
 
@@ -408,9 +457,9 @@ class View {
 
     /**
      * TODO
-     * @param unknown $template
+     * @param string $template
      */
-    public function _callTemplate($template=null)
+    public function _callTemplate($template = null)
     {
         if (is_null($template)) {
             $template = $this->_template;
@@ -418,12 +467,12 @@ class View {
 
         // The only var accessed from within template code
         $view = $this;      // $view var for use inside template
-        $tr = function($arg) {
-          // TODO: it will be refactored to proper call
-          return tr($arg);
+        $tr = function ($arg) {
+            // TODO: it will be refactored to proper call
+            return tr($arg);
         };
 
-        require_once(self::TPL_DIR . '/'. $template . '.tpl.php');
+        require_once(self::TPL_DIR . '/' . $template . '.tpl.php');
 
     }
 
@@ -433,5 +482,33 @@ class View {
             header('Content-type: text/plain');
         }
         die($text);
+    }
+
+    /**
+     * @return bool
+     */
+    public function isRedirectToMainPageAfterLogin()
+    {
+        return $this->_redirectToMainPageAfterLogin;
+    }
+
+    /**
+     * Set subtitle of the page
+     *
+     * @param string $subtitle
+     * @return View
+     */
+    public function setSubtitle($subtitle)
+    {
+        $this->_subtitle = $subtitle;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSubtitle()
+    {
+        return $this->_subtitle;
     }
 }

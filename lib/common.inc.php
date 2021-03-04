@@ -8,7 +8,7 @@ use src\Models\User\UserAuthorization;
 use src\Models\OcConfig\OcConfig;
 use src\Utils\I18n\I18n;
 
-ErrorHandler::install();
+ErrorHandler::install ();
 
 session_start();
 
@@ -32,13 +32,6 @@ if (php_sapi_name() != "cli") { // this is not neccesarry for command-line scrip
     //detecting errors
     //TODO: this is never set and should be removed but it needs to touch hungreds of files...
     $error = false;
-
-    //site in service?
-    if ($site_in_service == false) {
-        header('Content-type: text/html; charset=utf-8');
-        $page_content = file_get_contents(__DIR__.'/../html/outofservice.tpl.php');
-        die($page_content);
-    }
 
     UserAuthorization::verify();
 

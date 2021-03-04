@@ -5,33 +5,30 @@ use src\Models\MeritBadge\MeritBadge; //for static functions
 use src\Controllers\MeritBadgeController;
 use src\Controllers\ViewBadgeHeadController;
 use src\Controllers\ViewBadgeShowPositionsController;
+use src\Models\ApplicationContainer;
 
 require_once(__DIR__.'/lib/common.inc.php');
 
 
 global $content_table, $config;
 
-if ($usr == false) {
+$loggedUser = ApplicationContainer::GetAuthorizedUser();
+
+if (!$loggedUser) {
     $target = urlencode(tpl_get_current_page());
     tpl_redirect('login.php?target=' . $target);
     exit;
 }
 
-
 $tplname = 'badge';
-$usrid = -1;
-
 
 if (isset($_REQUEST['user_id'])) {
     $userid = $_REQUEST['user_id'];
 } else {
-    $userid = $usr['userid'];
+    $userid = $loggedUser->getUserId();
 }
 
-
-
 $badge_id = $_REQUEST['badge_id'];
-
 
 $head= (new ViewBadgeHeadController())->index();
 $meritBadgeCtrl = new \src\Controllers\MeritBadgeController;
@@ -87,13 +84,14 @@ foreach( $levelsMeritBadge as $oneLevel ){
     }
 
     $contentLvl .= "
-        gct.addEmptyRow();
-        gct.addToLastRow( 0, \"$pure_level\" );
-        gct.addToLastRow( 1, \"$level\" );
-        gct.addToLastRow( 2, \"$name\" );
-        gct.addToLastRow( 3, \"$threshold\" );
-        gct.addToLastRow( 4, \"$gain\" );
-        gct.addToLastRow( 5, \"$max_date\" ); ";
+            gct.addEmptyRow();
+
+            gct.addToLastRow( 0, \"$pure_level\" );
+            gct.addToLastRow( 1, \"$level\" );
+            gct.addToLastRow( 2, \"$name\" );
+            gct.addToLastRow( 3, \"$threshold\" );
+            gct.addToLastRow( 4, \"$gain\" );
+            gct.addToLastRow( 5, \"$max_date\" ); ";
 }
 
 
@@ -138,6 +136,7 @@ foreach( $usersMeritBadge as $oneUserBadge ){
 
     $contentUsr .= "
         gctU.addEmptyRow();
+
         gctU.addToLastRow( 0, \"$user_name\" );
         gctU.addToLastRow( 1, \"$curr_val\" );
         gctU.addToLastRow( 2, \"$curr_level_date\" );";

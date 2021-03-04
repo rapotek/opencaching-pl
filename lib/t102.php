@@ -1,12 +1,20 @@
 <?php
+
+use src\Models\ApplicationContainer;
 use src\Utils\I18n\I18n;
+
+$user = ApplicationContainer::Instance()->getLoggedUser();
 ?>
 
-<div id='idGTC' align = "center"> </div>
-<script>GCTLoad( 'ChartTable', '" . <?=I18n::getCurrentLang()?> . "' );</script>
+<div id="idGTC"> </div>
 
 <script>
-    var gct = new GCT('idGTC');
+gctLoadTable( '" . I18n::getCurrentLang() . "' );
+var gct = new GCT();
+
+function t102CB(){
+
+    gct.setDataTable();
 
     gct.addColumn('number', "<?php echo tr('Pos') ?>", 'text-align: left; ');
     gct.addColumn('number', "<?php echo tr('Nr') ?>", 'text-align: left; ');
@@ -15,13 +23,23 @@ use src\Utils\I18n\I18n;
     gct.addColumn('string', 'UserName');
     gct.addColumn('string', 'UserId');
 
+    setOptions();
+
     gct.hideColumns([4, 5]);
+    fillContent();
+
+    gct.drawTable('idGTC');
+    gct.addSelectEvent( GCTEventSelectFunction );
+}
 </script>
 
 <?php
 echo "<script>";
-echo "gct.addChartOption('pagingSymbols', { prev: '" . tr('Prev1') . "', next: '" . tr('Next1') . "' });";
-echo "</script>";
+echo "function setOptions(){";
+echo "gct.addOption('pagingSymbols', { prev: '" . tr('Prev1') . "', next: '" . tr('Next1') . "' });";
+echo "}";
+echo "</script>"
+;
 
 use src\Utils\Database\OcDb;
 require_once (__DIR__ . '/ClassPathDictionary.php');
@@ -161,12 +179,14 @@ $s = $dbc->multiVariableQuery($query);
 echo "<script>";
 
 
+
 $nRanking = 0;
 $sOpis = "";
 $nOldCount = -1;
 $nPos = 0;
 $nMyRanking = 0;
 $nMyRealPos = 0;
+$contentUsr = "";
 
 while ($record = $dbc->dbResultFetch($s)) {
     if ($record["description"] <> "") {
@@ -208,7 +228,7 @@ while ($record = $dbc->dbResultFetch($s)) {
 
     $nPos++;
 
-    echo "
+    $contentUsr .= "
             gct.addEmptyRow();
             gct.addToLastRow( 0, $nRanking );
             gct.addToLastRow( 1, $nCount );
@@ -218,16 +238,19 @@ while ($record = $dbc->dbResultFetch($s)) {
             gct.addToLastRow( 5, '$sUserID' );
         ";
 
-    if ($usr['userid'] == $record['user_id']) {
+    if (!empty($user) && $user->getUserId() == $record['user_id']) {
         $nMyRanking = $nRanking;
         $nMyRealPos = $nPos - 1;
     }
 }
 
+echo "gctSetCallback( t102CB );";
 
+echo "function fillContent() {";
+echo $contentUsr;
+echo "}
+";
 
-echo "gct.drawChart();";
-echo "gct.addSelectEvent( GCTEventSelectFunction );";
 
 echo "document.Details.SelectedUser.value = '0';";
 echo "document.Position.Ranking.value = '" . $nMyRanking . " / " . $nRanking . "';";

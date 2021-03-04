@@ -1,6 +1,9 @@
 <?php
 namespace src\Utils\Debug;
 
+use Error;
+use Throwable;
+
 
 class Debug {
 
@@ -10,37 +13,45 @@ class Debug {
      *
      * @return string
      */
-    public static function getTraceStr()
+    public static function formTraceStr($backtrace)
     {
-        $traceStr = '';
-        $backtrace = debug_backtrace();
+        $traceStr = "\n  STACKTRACE:";
 
-        array_shift($backtrace); //remove first element - call this method...
+        $i = 0;
+        foreach ($backtrace as $trace) {
+            $file = $trace['file'] ?? '?';
+            $line = $trace['line'] ?? '?';
+            $func = $trace['function'] ?? '?';
+            $class = isset($trace['class']) ? $trace['class'] . '::' : '';
 
-        foreach($backtrace as $trace){
-            if( isset($trace['file']) && isset($trace['line']) ){
-                $traceStr.= ' | '.$trace['file'].':'.$trace['line'];
-            }else{
-                $traceStr.= ' | ? : ?';
-            }
+            $traceStr .= "\n  #$i: $file:$line [$class$func()]";
+            $i ++;
         }
-        return $traceStr;
+        return $traceStr . "\n";
     }
 
-    public static function errorLog($message, $addStackTrace=true){
-
-        if($addStackTrace){
-            $message .= " \n| STACKTRACE:".self::getTraceStr();
+    public static function logException(Throwable $e)
+    {
+        $message = sprintf("%s: [%s:%d] %s ", get_class($e), $e->getFile(), $e->getLine(), $e->getMessage());
+        if (! empty($e->getTrace())) {
+            $message .= self::formTraceStr($e->getTrace());
         }
-
         error_log($message);
     }
 
-    public static function dumpToLog($var, $message=null){
+    public static function errorLog($message, $addStackTrace = true)
+    {
+        if ($addStackTrace) {
+            $message .= self::formTraceStr(debug_backtrace());
+        }
+        error_log($message);
+    }
 
-        if(!is_null($message)){
-            $result = $message.': ';
-        }else{
+    public static function dumpToLog($var, $message = null)
+    {
+        if (! is_null($message)) {
+            $result = $message . ': ';
+        } else {
             $result = 'var-dump: ';
         }
         $result .= var_export($var, TRUE);

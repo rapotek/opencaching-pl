@@ -1,6 +1,7 @@
 <?php
 namespace src\Utils\Uri;
 
+use Exception;
 use src\Models\OcConfig\OcConfig;
 
 class Uri {
@@ -83,6 +84,7 @@ class Uri {
      *
      * @param string $rootPath - path to the file (from root of thw site)
      * @return string
+     * @throws Exception
      */
     public static function getLinkWithModificationTime($rootPath)
     {
@@ -98,7 +100,7 @@ class Uri {
                 // there is such file in '/public'
                 $realPath = $ROOT.'/public'.$rootPath;
             } else {
-                throw new \Exception("No such file: $rootPath");
+                throw new Exception("No such file: $rootPath");
             }
         }
 
@@ -127,7 +129,7 @@ class Uri {
      */
     public static function getCurrentDomain($verifyDomain = true)
     {
-        if(!isset($_SERVER['HTTP_HOST'])){
+        if (!isset($_SERVER['HTTP_HOST'])) {
             // HOST not set in request - just ignore the domain
             return null;
         }
@@ -148,6 +150,16 @@ class Uri {
     }
 
     /**
+     * Returns path with filename from uri
+     *
+     * @param uri $uri
+     * @return string
+     */
+    public static function getPathfromUrl($uri){
+        return parse_url($uri, PHP_URL_PATH);
+    }
+
+    /**
      * Returns protocol://domain
      * for example: https://opencaching.pl
      * @return string
@@ -164,6 +176,8 @@ class Uri {
      * it returns: http://opencaching.pl/StartPage/index (defult)
      * or: /StartPage/index if $withProtoAndDomain == false
      *
+     * @param bool $withProtoAndDomain
+     * @return string
      */
     public static function getCurrentRequestUri($withProtoAndDomain = true)
     {
@@ -200,14 +214,39 @@ class Uri {
      * @param array dictionary of params
      * @return string
      */
-    public static function addParamsToUri($uri, $params = [])
+    public static function addParamsToUri($uri, array $params = [])
     {
         $delimiter = strpos($uri, '?') ? '&' : '?';
 
         foreach ($params as $key => $value) {
-            $uri .= $delimiter . $key . '=' . urlencode($value);
+            if ($value) {
+                $uri .= $delimiter . $key . '=' . urlencode($value);
+            } else {
+                $uri .= $delimiter . $key;
+            }
             $delimiter = '&';
         }
         return $uri;
+    }
+
+    /**
+     * From page-relative path returns the path as local server path (in server filesystem)
+     *
+     * @param string $pageRootPath
+     * @return string
+     */
+    public static function getAbsServerPath($pageRootPath)
+    {
+        $rootPath = self::getPageRootPathOnServer();
+        return $rootPath.$pageRootPath;
+    }
+
+    /**
+     * Returns the page root-path on server
+     * @return string
+     */
+    private static function getPageRootPathOnServer()
+    {
+        return preg_replace('/(\/[^\/]*){3}$/', '', __DIR__);
     }
 }

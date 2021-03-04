@@ -3,23 +3,26 @@
 use src\Utils\Text\Formatter;
 use src\Controllers\MeritBadgeController;
 use src\Controllers\ViewBadgeHeadController;
+use src\Models\GeoCache\GeoCacheCommons;
+use src\Models\ApplicationContainer;
 
 require_once(__DIR__.'/lib/common.inc.php');
 
 
 global $content_table, $config;
 
-if ($usr == false) {
+$loggedUser = ApplicationContainer::GetAuthorizedUser();
+
+if (!$loggedUser) {
     $target = urlencode(tpl_get_current_page());
     tpl_redirect('login.php?target=' . $target);
     exit;
 }
 
-$usrid = -1;
 if (isset($_REQUEST['user_id'])) {
     $userid = $_REQUEST['user_id'];
 } else {
-    $userid = $usr['userid'];
+    $userid = $loggedUser->getUserId();
 }
 
 $badge_id = $_REQUEST['badge_id'];
@@ -33,7 +36,6 @@ $tplname = 'badge_positions_list';
 $content = "";
 
 $positionsMeritBadge = $meritBadgeCtrl->buildArrayGainedPositions($userid, $badge_id);
-$cacheTypesIcons = cache::getCacheIconsSet();
 
 foreach( $positionsMeritBadge as $onePositionBadge ){
 
@@ -55,8 +57,7 @@ foreach( $positionsMeritBadge as $onePositionBadge ){
 
     $typeIcon ='<img src="{src}" />';
     $typeIcon = str_replace( "{src}",
-            $cacheTypesIcons[$onePositionBadge->getType()]['iconSet'][1]['iconSmallFound'],
-            $typeIcon );
+        GeoCacheCommons::CacheIconByType($onePositionBadge->getType(), GeoCacheCommons::STATUS_READY), $typeIcon);
 
     $date = Formatter::date($onePositionBadge->getGainDate());
     $dateSort = date("y.m.d", strtotime($onePositionBadge->getGainDate()));

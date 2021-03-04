@@ -14,15 +14,28 @@
         $('#region1').prop('disabled', false);
         $('#regionAjaxLoader').show();
         request = $.ajax({
-            url: "ajaxGetRegionsByCountryCode.php",
-            type: "post",
-            data: {countryCode: $('#country').val(), selectedRegion: '{region}', searchForm: 1},
+          url: "/Location/getRegionsByCountryCodeAjax/"+$('#country').val(),
+            type: "get",
+            //data: {countryCode: $('#country').val(), selectedRegion: '{region}', searchForm: 1},
         });
 
         // callback handler that will be called on success
         request.done(function (response, textStatus, jqXHR) {
-            $('#region1').html(response);
-            console.log(response);
+          var select = $('#region1');
+          select.empty();
+          if(response.regions.length == 0){
+            select.append('<option value="" disabled selected="selected"><?=tr('search01')?></option>');
+          } else {
+              select.append('<option value="" selected="selected"><?=tr('search01')?></option>');
+              response.regions.forEach(function(element) {
+                if ( element.code == '{sel_region}') {
+                  select.append('<option selected="selected" value="'+element.code+'">'+element.name+'</option>')
+                } else {
+                  select.append('<option value="'+element.code+'">'+element.name+'</option>')
+                }
+              });
+          }
+
         });
 
         request.always(function () {
@@ -136,45 +149,47 @@
         return true;
     }
 
-    function sync_options(element)
+    function sync_options(element) {
 
-    {
         var sortby = "";
-        if (document.optionsform.sort[0].checked == true)
+        if (document.optionsform.sort[0].checked == true) {
             sortby = "byname";
-        else if (document.optionsform.sort[1].checked == true)
+        } else if (document.optionsform.sort[1].checked == true) {
             sortby = "bydistance";
-        else if (document.optionsform.sort[2].checked == true)
+        } else if (document.optionsform.sort[2].checked == true) {
             sortby = "bycreated";
+        }
 
         var recommendations = 0;
         if (document.optionsform.cache_rec[0].checked == true) {
             document.optionsform.cache_min_rec.disabled = 'disabled';
             recommendations = 0
-        }
-        else if (document.optionsform.cache_rec[1].checked == true) {
+
+        } else if (document.optionsform.cache_rec[1].checked == true) {
             document.optionsform.cache_min_rec.disabled = false;
             recommendations = document.optionsform.cache_min_rec.value;
         }
 
         var tmpattrib = "";
-        for (i = 0; i < maAttributes.length; i++)
-            if (maAttributes[i][1] == 1)
+        for (i = 0; i < maAttributes.length; i++) {
+            if (maAttributes[i][1] == 1) {
                 tmpattrib = '' + tmpattrib + maAttributes[i][0] + ';';
+            }
+        }
         if (tmpattrib.length > 0)
             tmpattrib = tmpattrib.substr(0, tmpattrib.length - 1);
 
         var tmpattrib_not = "";
-        for (i = 0; i < maAttributes.length; i++)
+        for (i = 0; i < maAttributes.length; i++) {
             if (maAttributes[i][1] == 2)
                 tmpattrib_not = '' + tmpattrib_not + maAttributes[i][0] + ';';
-        if (tmpattrib_not.length > 0)
+        }
+        if (tmpattrib_not.length > 0) {
             tmpattrib_not = tmpattrib_not.substr(0, tmpattrib_not.length - 1);
+        }
 
         var formnames = new Array("searchbyname", "searchbydistance", "searchbyort", "searchbyfulltext", "searchbyowner", "searchbyfinder");
         var gpxLogLimit = $('#gpxLogLimit').val();
-
-
 
         for (var a = 0; a < formnames.length; a++) {
 

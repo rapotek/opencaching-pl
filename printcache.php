@@ -6,6 +6,7 @@ use src\Utils\Database\XDb;
 use src\Utils\Uri\Uri;
 use src\Utils\View\View;
 use src\Utils\I18n\I18n;
+use src\Models\ApplicationContainer;
 
 require_once(__DIR__.'/lib/common.inc.php');
 
@@ -13,11 +14,11 @@ if (isset($_POST['flush_print_list'])) {
     PrintList::Flush();
 }
 
-//Preprocessing
 $cache_id = isset($_GET['cacheid']) ? $_GET['cacheid'] + 0 : 0;
 if (!$cache_id) {
-    if (!$usr ||
-        ((empty(PrintList::GetContent())) && ($_GET['source'] != 'mywatches'))) {
+    $loggedUser = ApplicationContainer::GetAuthorizedUser();
+    if (!$loggedUser ||
+        (empty(PrintList::GetContent()) && (isset($_GET['source']) && $_GET['source'] != 'mywatches'))) {
         header("Location:index.php");
         die();
     }
@@ -57,7 +58,7 @@ if ($cache_id) {
 if ((isset($_GET['source'])) && ($_GET['source'] == 'mywatches')) {
 
     $rs = XDb::xSql("SELECT `cache_watches`.`cache_id` AS `cache_id`
-                         FROM `cache_watches` WHERE `cache_watches`.`user_id`= ? ", $usr['userid']);
+                         FROM `cache_watches` WHERE `cache_watches`.`user_id`= ? ", $loggedUser->getUserId());
     if (XDb::xNumRows($rs) > 0) {
         $caches_list = array();
         for ($i = 0; $i < XDb::xNumRows($rs); $i++) {
@@ -137,7 +138,7 @@ if ($_POST['spoiler_only'] == "&spoiler_only=1") {
     <meta charset="utf-8">
     <title><?php echo OcConfig::getSitePageTitle();
         echo ' - '.tr('pagetitle_print'); ?></title>
-    <link rel="shortcut icon" href="/images/<?php print $config['headerFavicon']; ?>">
+    <link rel="shortcut icon" href="<?=OcConfig::getSiteMainViewIcon('shortcutIcon')?>">
     <link rel="stylesheet" type="text/css"
           href="<?= Uri::getLinkWithModificationTime('/css/style_print.css') ?>">
 </head>

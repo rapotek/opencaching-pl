@@ -2,15 +2,19 @@
 
 use src\Utils\Database\XDb;
 use src\Models\OcConfig\OcConfig;
+use src\Models\ApplicationContainer;
 
 require_once (__DIR__.'/lib/common.inc.php');
 
-if ($error == false) {
-    //user logged in?
-    if ($usr == false) {
-        $target = urlencode(tpl_get_current_page());
-        tpl_redirect('login.php?target=' . $target);
-    } else {
+//user logged in?
+$loggedUser = ApplicationContainer::GetAuthorizedUser();
+if (!$loggedUser) {
+    $target = urlencode(tpl_get_current_page());
+    tpl_redirect('login.php?target=' . $target);
+    exit;
+}
+
+
         $tplname = 'removemp3'; // gibt es nicht ...
         require_once (__DIR__.'/src/Views/removemp3.inc.php');
 
@@ -35,8 +39,9 @@ if ($error == false) {
             $localid = $r['id'];
             $url = $r['url'];
 
-            if ($user_id != $usr['userid'] && !$usr['admin'])
+            if ($user_id != $loggedUser->getUserId() && !$loggedUser->hasOcTeamRole()) {
                 $allok = false;
+            }
         }
 
         if ($allok == true) {
@@ -45,7 +50,7 @@ if ($error == false) {
             $extension = mb_strtolower($fna[count($fna) - 1]);
 
             // remove file and DB entry
-            @unlink($picdir . '/' . $uuid . '.' . $extension);
+            @unlink(OcConfig::getPicUploadFolder(true) . '/' . $uuid . '.' . $extension);
             XDb::xSql("DELETE FROM `mp3` WHERE `uuid`= ? LIMIT 1", $uuid);
             XDb::xSql(
                 "INSERT INTO `removed_objects` (`localID`, `uuid`, `type`, `removed_date`, `node`)

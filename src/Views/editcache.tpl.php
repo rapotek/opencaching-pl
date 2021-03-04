@@ -1,46 +1,65 @@
-
+<?php
+use src\Utils\View\View;
+?>
 <script>
     $(function () {
+        // load country based on coords
         chkcountry2();
     });
-            var maAttributes = new Array({jsattributes_array});
-            function check_if_proceed() {
-//purpose: to warn user on changes lost - warning appears in case any change has been done (hidden any_changes set to "yes" by"yes_change func")
-                var any_change = document.getElementById('any_changes').value;
-                if (any_change == "yes")
-                {
-                    var answ = confirm('{{ec_proceed_without_save}}');
-                    if (answ == true) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                    ;
-                } else {
-                    return true;
-                }
+
+    var maAttributes = new Array({jsattributes_array});
+    function check_if_proceed() {
+        //purpose: to warn user on changes lost - warning appears in case any change has been done
+        //  (hidden any_changes set to "yes" by"yes_change func")
+        var any_change = document.getElementById('any_changes').value;
+        if (any_change == "yes")
+        {
+            var answ = confirm('{{ec_proceed_without_save}}');
+            if (answ == true) {
+                return true;
+            } else {
+                return false;
             }
+            ;
+        } else {
+            return true;
+        }
+    }
 
     function yes_change() {
         //purpose: set any_changes flag to "yes" - in order to trigger warning in check_if_proceed func
         var hidden_a_c = document.getElementById('any_changes');
         hidden_a_c.value = "yes";
         //alert ('Change!');
-
     }
-    ;
+
     function chkcountry2() {
         $('#region1').hide();
         $('#regionAjaxLoader').show();
+
         request = $.ajax({
-            url: "ajaxGetRegionsByCountryCode.php",
-            type: "post",
-            data: {countryCode: $('#country').val(), selectedRegion: '{cache_region}'},
+          url: "/Location/getRegionsByCountryCodeAjax/"+$('#country').val(),
+          type: "get",
         });
+
         // callback handler that will be called on success
         request.done(function (response, textStatus, jqXHR) {
-            $('#region1').html(response);
+            var select = $('#region1');
+            select.empty();
+            if(response.regions.length == 0){
+              select.append('<option value="-1" disabled selected="selected">-</option>');
+            } else {
+                select.append('<option value="0" selected="selected"><?=tr('search01')?></option>');
+                response.regions.forEach(function(element) {
+                  if ( element.code == '{cache_region}') {
+                    select.append('<option selected="selected" value="'+element.code+'">'+element.name+'</option>')
+                  } else {
+                    select.append('<option value="'+element.code+'">'+element.name+'</option>')
+                  }
+                });
+            }
         });
+
         request.always(function () {
             $('#regionAjaxLoader').hide();
             $('#region1').fadeIn(1000);
@@ -72,6 +91,7 @@
         }
         return false;
     }
+
     function extractregion()
     {
         var latNS = document.forms['editcache_form'].latNS.value;
@@ -410,15 +430,24 @@
         {waypoints_end}
 
         <tr><td class="buffer" colspan="2"></td></tr>
+
         <tr>
             <td colspan="2">
-                <div class="content2-container bg-blue02"><p class="content-title-noshade-size1"><img src="/images/blue/picture.png" class="icon32" alt=""/>&nbsp;&nbsp;{{pictures_label}}</p></div>
-                <div class="content2-newline"><p class="content-title-noshade"><img src="images/actions/list-add-20.png" align="middle" border="0" alt=""/>&nbsp;<a href="newpic.php?objectid={cacheid_urlencode}&type=2&def_seq={def_seq}" onclick="return check_if_proceed();">{{add_new_pict}}</a></p></div>
+                <div class="content2-container bg-blue02">
+                  <p class="content-title-noshade-size1">
+                    <img src="/images/blue/picture.png" class="icon32" alt=""/>
+                    &nbsp;&nbsp;{{pictures_label}}
+                  </p>
+                </div>
             </td>
         </tr>
+        <tr>
+          <!-- load pictures subtemplate -->
+          <?php /* @var $v View */ ?>
+          <td colspan="2"><?=$v->callSubTpl('/editCache/pictures')?></td>
+        </tr>
         <tr><td class="buffer" colspan="2"></td></tr>
-        {pictures}
-        <tr><td class="buffer" colspan="2"></td></tr>
+
         <!-- Text container -->
         {hidemp3_start}
         <tr>

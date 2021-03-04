@@ -184,26 +184,12 @@ class UserAuthorization extends BaseObject
         // set obsolete user_is in session
         $_SESSION['user_id'] = $user->getUserId();
 
-        // set obsolete global $usr[] array
-        global $usr;
-        $usr['username'] = $user->getUserName();
-        $usr['userFounds'] = $user->getFoundGeocachesCount();
-        $usr['userid'] = $user->getUserId();
-        $usr['email'] = $user->getEmail();
-        $usr['latitude'] = $user->getHomeCoordinates()->getLatitude();
-        $usr['longitude'] = $user->getHomeCoordinates()->getLongitude();
-        $usr['admin'] = $user->hasOcTeamRole();
-
     }
 
     private static function clearContextVars(){
 
         // clear AppContainer
         ApplicationContainer::SetAuthorizedUser(null);
-
-        // clear obsolete global $usr[] array
-        global $usr;
-        $usr = false;
 
         // set obsolete user_is in session
         unset($_SESSION['user_id']);
@@ -420,7 +406,7 @@ class UserAuthorization extends BaseObject
         $email->setHtmlBody($userMessage->getEmailContent());
         $result = $email->send();
         if (! $result) {
-            error_log(__METHOD__ . ': Mail sending failure to: ' . $user->getEmail());
+            Debug::errorLog('Mail sending failure to: ' . $user->getEmail());
         }
         return $result;
     }

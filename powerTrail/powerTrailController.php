@@ -2,11 +2,11 @@
 
 use src\Utils\Database\OcDb;
 use src\Utils\Generators\Uuid;
+use src\Models\User\User;
 
 class powerTrailController
 {
 
-    private $debug = true;
     private $action;
     private $user;
     private $userPTs;
@@ -17,7 +17,7 @@ class powerTrailController
     private $ptOwners;
     private $areOwnSeries = false;
 
-    function __construct($user)
+    function __construct(?User $user)
     {
         if (isset($_REQUEST['ptAction'])) {
             $this->action = $_REQUEST['ptAction'];
@@ -38,19 +38,16 @@ class powerTrailController
                 break;
             case 'selectCaches':
                 $this->getUserPTs();
-
                 return $this->getUserCachesToChose();
                 break;
             case 'createNewPowerTrail':
                 $this->createNewPowerTrail();
                 break;
-            case 'showAllSeries':
-                $this->getAllPowerTrails();
-                break;
-            case 'showSerie':
+                case 'showSerie':
                 //$this->getPowerTrailCaches();
                 break;
-            default:
+            case 'showAllSeries':
+                default:
                 $this->getAllPowerTrails();
                 break;
         }
@@ -58,6 +55,10 @@ class powerTrailController
 
     private function mySeries()
     {
+        if( !isset($_SESSION['user_id'])){
+           return;
+        }
+
         // print $_SESSION['user_id'];
         $q = 'SELECT * FROM `PowerTrail` WHERE id IN (SELECT `PowerTrailId` FROM `PowerTrail_owners`
                 WHERE `userId` = :1 ) ORDER BY cacheCount DESC';
@@ -66,7 +67,6 @@ class powerTrailController
         $this->allSeries = $db->dbResultFetchAll($s);
         $this->action = 'showMySeries';
         $this->areOwnSeries = true;
-
     }
 
     private function getAllPowerTrails()
@@ -83,15 +83,13 @@ class powerTrailController
                 case 'dateCreated':
                     $sortBy = 'dateCreated';
                     break;
-                case 'cacheCount':
-                    $sortBy = 'cacheCount';
-                    break;
                 case 'points':
                     $sortBy = 'points';
                     break;
                 case 'conquestedCount':
                     $sortBy = 'conquestedCount';
                     break;
+                case 'cacheCount':
                 default:
                     $sortBy = 'cacheCount';
                     break;
@@ -122,8 +120,6 @@ class powerTrailController
                     $sortOder = 'ASC';
                     break;
                 case 'desc':
-                    $sortOder = 'DESC';
-                    break;
                 default:
                     $sortOder = 'DESC';
                     break;
@@ -136,7 +132,7 @@ class powerTrailController
         } else {
             $cacheCountLimit = powerTrailBase::minimumCacheCount();
         }
-        $userid = $this->user['userid'];
+        $userid = (!$this->user) ? null : $this->user->getUserId();
         if (isset($_REQUEST['myPowerTrailsBool']) && isset($userid) && $_REQUEST['myPowerTrailsBool'] === "yes") {
             $myTrailsCondition = "and `id` NOT IN (SELECT `PowerTrailId` FROM `PowerTrail_owners`
             WHERE `userId` = $userid)";
@@ -169,11 +165,6 @@ class powerTrailController
     public function getPowerTrailOwn()
     {
         return $this->areOwnSeries;
-    }
-
-    public function getAllCachesOfPt()
-    {
-        return $this->allCachesOfSelectedPt;
     }
 
     public function getUserPowerTrails()
@@ -215,9 +206,9 @@ class powerTrailController
             $newProjectId = $db->lastInsertId();
             // exit;
             $query = "INSERT INTO `PowerTrail_owners`(`PowerTrailId`, `userId`, `privileages`) VALUES (:1,:2,:3)";
-            $db->multiVariableQuery($query, $newProjectId, $this->user['userid'], 1);
+            $db->multiVariableQuery($query, $newProjectId, $this->user->getUserId(), 1);
             $logQuery = 'INSERT INTO `PowerTrail_actionsLog`(`PowerTrailId`, `userId`, `actionDateTime`, `actionType`, `description`) VALUES (:1,:2,NOW(),1,:3)';
-            $db->multiVariableQuery($logQuery, $newProjectId, $this->user['userid'],
+            $db->multiVariableQuery($logQuery, $newProjectId, $this->user->getUserId(),
                 $this->ptAPI->logActionTypes[1]['type']);
             header("location: powerTrail.php?ptAction=showSerie&ptrail=$newProjectId");
 
@@ -230,19 +221,24 @@ class powerTrailController
 
     private function getUserCachesToChose()
     {
+        if (!$this->user) {
+            return [];
+        }
         $query = "SELECT cache_id, wp_oc, PowerTrailId, name FROM `caches` LEFT JOIN powerTrail_caches ON powerTrail_caches.cacheId = caches.cache_id WHERE caches.status NOT IN (3,6) AND `user_id` = :1";
         $db = OcDb::instance();
-        $s = $db->multiVariableQuery($query, $this->user['userid']);
-        $userCaches = $db->dbResultFetchAll($s);
-
-        return $userCaches;
+        $s = $db->multiVariableQuery($query, $this->user->getUserId());
+        return $db->dbResultFetchAll($s);
     }
 
     private function getUserPTs()
     {
+        if (!$this->user) {
+            return [];
+        }
+
         $query = "SELECT * FROM `PowerTrail`, PowerTrail_owners  WHERE  PowerTrail_owners.userId = :1 AND PowerTrail_owners.PowerTrailId = PowerTrail.id";
         $db = OcDb::instance();
-        $s = $db->multiVariableQuery($query, $this->user['userid']);
+        $s = $db->multiVariableQuery($query, $this->user->getUserId());
         $userPTs = $db->dbResultFetchAll($s);
 
         $this->userPTs = $userPTs;

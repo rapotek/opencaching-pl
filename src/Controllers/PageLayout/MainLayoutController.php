@@ -2,6 +2,7 @@
 
 namespace src\Controllers\PageLayout;
 
+use DateTime;
 use src\Controllers\BaseController;
 use src\Utils\DateTime\Year;
 use src\Utils\I18n\I18n;
@@ -13,6 +14,7 @@ use src\Models\OcConfig\OcConfig;
 use src\Models\User\UserAuthorization;
 use src\Utils\Cache\OcMemCache;
 use src\Utils\I18n\CrowdinInContextMode;
+use stdClass;
 
 /**
  * This controller prepares common data used by almost every page at oc
@@ -68,7 +70,7 @@ class MainLayoutController extends BaseController
             $this->view->setVar('_isUserLogged', true);
             $this->view->setVar('_username', $this->loggedUser->getUserName());
             // GDPR check and prepare template
-            if (new \DateTime() > new \DateTime("2018-05-25 00:00:00") && ! $this->loggedUser->areRulesConfirmed()) {
+            if (new DateTime() > new DateTime("2018-05-25 00:00:00") && ! $this->loggedUser->areRulesConfirmed()) {
                 $this->view->setShowGdprPage(true);
                 $this->view->setVar('_currentUri', urlencode(Uri::getCurrentUri(true)));
                 $this->view->setVar('_wikiLinkRules', $this->ocConfig->getWikiLink('rules'));
@@ -78,12 +80,16 @@ class MainLayoutController extends BaseController
             }
         } else {
             $this->view->setVar('_isUserLogged', false);
-            $this->view->setVar('_target',Uri::getCurrentUri(true));
+            if ($this->view->isRedirectToMainPageAfterLogin()) {
+                $this->view->setVar('_target', '/');
+            } else {
+                $this->view->setVar('_target', Uri::getCurrentUri(true));
+            }
         }
 
         $this->view->setVar('_siteName', OcConfig::getSiteName());
-        $this->view->setVar('_favicon', '/images/'.$config['headerFavicon']);
-        $this->view->setVar('_appleLogo', $config['header']['appleLogo']);
+        $this->view->setVar('_favicon', OcConfig::getSiteMainViewIcon('shortcutIcon'));
+        $this->view->setVar('_appleLogo', OcConfig::getSiteMainViewIcon('appleTouch'));  //xxx
 
         $this->view->setVar('_title', "TODO-title"); //TODO!
         $this->view->setVar('_backgroundSeason', $this->view->getSeasonCssName());
@@ -106,7 +112,7 @@ class MainLayoutController extends BaseController
                 '/views/common/mainLayout.css'));
         }
 
-        if (Year::isPrimaAprilisToday()) {
+        if (Year::isPrimaAprilisToday() && OcConfig::isPADanceEnabled()) {
             // add rythm JS
             $this->view->addLocalJs(
                 Uri::getLinkWithModificationTime(
@@ -118,15 +124,14 @@ class MainLayoutController extends BaseController
 
             $this->view->addLocalJs(Uri::getLinkWithModificationTime(
                 '/vendor/js-cookie/js-cookie/src/js.cookie.js'));
-
         }
 
-        if (Year::isPrimaAprilisToday()) {
+        if (Year::isPrimaAprilisToday() && OcConfig::isPADanceEnabled()) {
             $this->view->loadJQuery();
             $logo = $config['headerLogo'];
             $logoTitle = 'discoCaching';
             $logoSubtitle = 'The first discoCaching site!';
-        } else if (date('m') == 12 || date('m') == 1) {
+        } else if (Year::isChristmassTime()) {
             $logo = $config['headerLogoWinter'];
             $logoTitle = tr('oc_on_all_pages_top_' . $config['ocNode']);
             $logoSubtitle = tr('oc_subtitle_on_all_pages_' . $config['ocNode']);
@@ -331,7 +336,7 @@ class MainLayoutController extends BaseController
         }
 
         return OcMemCache::getOrCreate(__METHOD__, 5*60, function() {
-            $obj = new \stdClass();
+            $obj = new stdClass();
             $obj->listOfUsers = UserAuthorization::getOnlineUsersFromDb();
             $obj->validAt = time();
             return $obj;

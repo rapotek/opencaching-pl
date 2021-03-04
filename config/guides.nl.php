@@ -1,9 +1,10 @@
 <?php
+
 /**
- * This is configuration of guides criterias.
+ * Guides criteria configuration
  *
- * This is the guides criteria for OCNL.
- *
+ * Those are configuration overrides for OCNL node only.
  */
 
+$guides['guideActivePeriod'] = 180;
 $guides['guideGotRecommendations'] = 3;

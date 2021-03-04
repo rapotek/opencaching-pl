@@ -7,11 +7,22 @@ use src\Models\Coordinates\Coordinates;
 use src\Utils\Database\OcDb;
 use src\Utils\Database\QueryBuilder;
 use src\Models\GeoCache\GeoCache;
+use src\Models\User\User;
 use src\Models\Coordinates\NutsLocation;
 use src\Utils\Text\Formatter;
+use src\Utils\Debug\Debug;
+use src\Utils\Generators\TextGen;
+use src\Utils\Uri\SimpleRouter;
+use src\Utils\Uri\Uri;
+use src\Models\OcConfig\OcConfig;
+use src\Utils\Email\EmailFormatter;
+use src\Utils\Email\Email;
+use src\Controllers\GeoPathController;
 
 class CacheSet extends CacheSetCommon
 {
+    // This is path in DynBaseDir and in url a well
+    const DIR_LOGO_IMG = '/images/uploads/geopaths/logos';
 
     private $id;
     private $uuid;
@@ -65,7 +76,7 @@ class CacheSet extends CacheSetCommon
         return false;
     }
 
-    private function loadFromDbRow(array $dbRow)
+    public function loadFromDbRow(array $dbRow)
     {
         foreach ($dbRow as $key => $val) {
             switch ($key) {
@@ -115,7 +126,7 @@ class CacheSet extends CacheSetCommon
                     // cords are handled below...
                     break;
                 default:
-                    error_log(__METHOD__ . ": Unknown column: $key");
+                    Debug::errorLog("Unknown column: $key");
             }
         }
 
@@ -172,6 +183,7 @@ class CacheSet extends CacheSetCommon
 
         return self::db()->simpleQueryValue($query,0);
     }
+
 
     /**
      * Returns CacheSet[] of open GeoPaths with names containing $name.
@@ -368,4 +380,257 @@ class CacheSet extends CacheSetCommon
         parent::restoreAfterSerialization();
     }
 
+    /**
+     * Returns true if given user is an owner of this geopath
+     */
+    public function isOwner(User $user)
+    {
+        foreach($this->getOwners() as $owner) {
+            if($owner->getUserId() == $user->getUserId()) {
+                return true;
+            }
+        }
+        // there is no such user on the list of owners
+        return false;
+    }
+
+    /**
+     * Update geopath logo
+     * @param string $newLogoUrl
+     */
+    public function updateLogoImg($newLogoUrl)
+    {
+        // old logo url contained also hostname etc.
+        $oldLogo = Uri::getPathfromUrl($this->image);
+
+        // update logo in DB
+        $this->db->multiVariableQuery(
+            'UPDATE PowerTrail SET image=:1 WHERE id = :2',
+            $newLogoUrl, $this->id);
+
+        $this->image = $newLogoUrl;
+
+        if($oldLogo != $newLogoUrl){
+            // delete old logo
+            if (is_file(OcConfig::getDynFilesPath().$oldLogo)) {
+                unlink (OcConfig::getDynFilesPath().$oldLogo);
+            }
+        }
+    }
+
+    /**
+     * Add cache to this geopath
+     *
+     * @param GeoCache $cache
+     */
+    public function addCache(GeoCache $cache)
+    {
+        // check cache stataus - only "active" caches can be added to geopath
+        if(!self::isCacheStatusAllowedForGeoPathAdd($cache)){
+            throw new \RuntimeException("Cache in wrong status!");
+        }
+
+        // check cache type
+        if(!self::isCacheTypeAllowedForGeoPath($cache)){
+            throw new \RuntimeException("Cache of wrong type!");
+        }
+
+        $this->db->multiVariableQuery(
+            'INSERT INTO powerTrail_caches (cacheId, PowerTrailId, points)
+            VALUES (:1,:2,:3) ON DUPLICATE KEY UPDATE PowerTrailId = VALUES(PowerTrailId)',
+            $cache->getCacheId(), $this->id, self::getCachePoints($cache));
+
+        $this->updateCachesCount();
+        $this->updatePoints();
+        $this->recalculateCenterPoint();
+
+        $this->addActionLogEntry(self::ACTIONLOG_ATTACH_CACHE, $cache->getCacheId());
+    }
+
+    /**
+     * Remove given geocache from this geoPath
+     * @param GeoCache $cache
+     */
+    public function removeCache(GeoCache $cache)
+    {
+        // detach cache from path
+        $this->db->multiVariableQuery(
+            'DELETE FROM powerTrail_caches WHERE cacheId = :1 AND PowerTrailId = :2 LIMIT 1',
+            $cache->getCacheId(), $this->id);
+
+        $this->updateCachesCount();
+        $this->updatePoints();
+        $this->recalculateCenterPoint();
+
+        $this->addActionLogEntry(self::ACTIONLOG_REMOVE_CACHE, $cache->getCacheId());
+    }
+
+    /**
+     * Update the number of geocaches assigned to this geopath
+     */
+    public function updateCachesCount()
+    {
+        $this->cacheCount = $this->db->multiVariableQueryValue(
+            "SELECT COUNT(*) FROM powerTrail_caches WHERE PowerTrailId = :1", 0, $this->id);
+
+        // update caches count
+        $this->db->multiVariableQuery(
+            'UPDATE PowerTrail SET cacheCount = :1 WHERE id = :2 LIMIT 1',
+            $this->cacheCount, $this->id);
+
+    }
+
+    public function addCacheCandidate(GeoCache $cache)
+    {
+        GeopathCandidate::createNewCandidate($this, $cache);
+
+        // send email with code to cache owner
+        $candidateMessage = new EmailFormatter(
+            Uri::getAbsServerPath('/resources/email/geopath/cacheCandidate.email.html'), true);
+
+        $candidateMessage->setVariable('acceptUri',
+            SimpleRouter::getAbsLink(GeoPathController::class, 'myCandidates'));
+
+        $candidateMessage->setVariable('gpOwner', $this->getCurrentUser()->getUserName());
+        $candidateMessage->setVariable('gpOwnerUri', Uri::getAbsUri($this->getCurrentUser()->getProfileUrl()));
+
+        $candidateMessage->setVariable('cacheUri', Uri::getAbsUri($cache->getCacheUrl()));
+        $candidateMessage->setVariable('cacheName', "{$cache->getCacheName()} ({$cache->getGeocacheWaypointId()})");
+
+        $candidateMessage->setVariable('gpUri', Uri::getAbsUri($this->getUrl()));
+        $candidateMessage->setVariable('gpName', $this->getName());
+
+        $candidateMessage->addFooterAndHeader($cache->getOwner()->getUserName());
+
+        $email = new Email();
+        $email->addToAddr($cache->getOwner()->getEmail());
+        $email->setReplyToAddr(OcConfig::getEmailAddrNoReply());
+        $email->setFromAddr(OcConfig::getEmailAddrNoReply());
+        $email->addSubjectPrefix(OcConfig::getEmailSubjectPrefix());
+        $email->setSubject(tr('gp_cacheCandidateEmailSubject', [OcConfig::getSiteName()]));
+        $email->setHtmlBody($candidateMessage->getEmailContent());
+
+        try {
+            $email->send();
+        } catch(\RuntimeException $e) {
+            Debug::errorLog('Mail sending failure: '.$e->getMessage());
+            return false;
+        }
+
+        return true;
+    }
+
+    public function isCandidateExists(GeoCache $cache, $toThisGeoPath=false)
+    {
+        if($toThisGeoPath) {
+            $matchingRecords = self::db()->multiVariableQueryValue(
+                "SELECT COUNT(*) FROM PowerTrail_cacheCandidate
+                WHERE cacheId = :1 LIMIT 1",
+                0, $cache->getCacheId());
+        } else {
+            $matchingRecords = self::db()->multiVariableQueryValue(
+                "SELECT COUNT(*) FROM PowerTrail_cacheCandidate
+                WHERE cacheId = :1 AND PowerTrailId = :2
+                LIMIT 1", 0, $cache->getCacheId(), $this->id);
+        }
+        return $matchingRecords != 0;
+    }
+
+    public function isCandiddateCodeExists(Geocache $cache, $code)
+    {
+        $matchingRecords = self::db()->multiVariableQueryValue(
+            "SELECT COUNT(*) FROM PowerTrail_cacheCandidate
+            WHERE cacheId = :1 AND link = :2 AND PowerTrailId = :3
+            LIMIT 1", 0, $cache->getCacheId(), $code, $this->id);
+
+        return $matchingRecords != 0;
+    }
+
+    /**
+     * This method returns the geopathId + cacheId for given code
+     * @param string $code
+     */
+    public static function getCandidateDataBasedOnCode($code)
+    {
+        $stmt = self::db()->multiVariableQuery(
+            "SELECT PowerTrailId, cacheId FROM PowerTrail_cacheCandidate
+             WHERE link = :1 LIMIT 1", $code);
+
+        $row = self::db()->dbResultFetchOneRowOnly($stmt);
+        if(is_array($row) && !empty($row)){
+            return [$row['PowerTrailId'], $row['cacheId']];
+        } else {
+            return [null, null];
+        }
+    }
+
+    public function deleteCandidateCode(Geocache $cache, $code=null){
+        if($code){
+            // delete only one candidate record assign to this cache (by code)
+            self::db()->multiVariableQuery(
+                "DELETE FROM PowerTrail_cacheCandidate
+                WHERE cacheId = :1 AND link = :2 LIMIT 1",
+                $cache->getCacheId(), $code);
+        } else {
+            // delete all candidate records assign to this cache
+            self::db()->multiVariableQuery(
+                "DELETE FROM PowerTrail_cacheCandidate
+                WHERE cacheId = :1", $cache->getCacheId());
+        }
+    }
+
+    private function addActionLogEntry($actionLogType, $cacheId)
+    {
+        $actionLogDesc = [
+            self::ACTIONLOG_CREATE          => 'create new Power Trail',
+            self::ACTIONLOG_ATTACH_CACHE    => 'attach cache to PowerTrail',
+            self::ACTIONLOG_REMOVE_CACHE    => 'remove cache from PowerTrail',
+            self::ACTIONLOG_ADD_OWNER       => 'add another owner to PowerTrail',
+            self::ACTIONLOG_REMOVE_OWNER    => 'remove owner from PowerTrail',
+            self::ACTIONLOG_CHANGE_STATUS   => 'change PowerTrail status',
+        ];
+
+        $this->db->multiVariableQuery(
+            'INSERT INTO PowerTrail_actionsLog
+                (PowerTrailId, userId, actionDateTime, actionType, description, cacheId)
+             VALUES (:1, :2, NOW(), :3, :4, :5)',
+            $this->id, $this->getCurrentUser()->getUserId(), $actionLogType,
+            $actionLogDesc[$actionLogType], $cacheId);
+    }
+
+    public function recalculateCenterPoint()
+    {
+        $this->db->multiVariableQuery('
+            UPDATE PowerTrail
+                JOIN (
+                    SELECT COUNT(*) AS count,
+                           SUM(c.latitude) AS lat_sum,
+                           SUM(c.longitude) AS lon_sum,
+                           pt.PowerTrailId AS ptId
+                    FROM powerTrail_caches AS pt
+                        LEFT JOIN caches AS c ON c.cache_id = pt.cacheId
+                    WHERE PowerTrailId = :1
+                ) AS calc ON PowerTrail.id = calc.ptId
+            SET centerLatitude = (calc.lat_sum / calc.count),
+                centerLongitude = (calc.lon_sum / calc.count)
+            WHERE id = :2',
+            $this->id, $this->id);
+
+        $coords = $this->db->dbResultFetchOneRowOnly($this->db->multiVariableQuery(
+            "SELECT centerLatitude AS lat, centerLongitude AS lon
+             FROM PowerTrail WHERE id = :1 LIMIT 1", $this->id));
+
+        $this->centerCoordinates = Coordinates::FromCoordsFactory($coords['lat'], $coords['lon']);
+    }
+
+    public function updatePoints()
+    {
+        // update caches count
+        $this->db->multiVariableQuery(
+            'UPDATE PowerTrail
+             SET points = ( SELECT SUM(points) FROM powerTrail_caches WHERE PowerTrailId = :1 )
+             WHERE id = :2 LIMIT 1', $this->id, $this->id
+            );
+    }
 }
+

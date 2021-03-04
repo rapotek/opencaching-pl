@@ -15,28 +15,25 @@ jQuery(function($) {
   $('.Badge-pie-progress-small').asPieProgress({
     namespace: 'pie_progress'
   });
-
   $('.pie_progress').asPieProgress('start');
-
 });
-
 </script>
 
 <script src="/js/wz_tooltip.js"></script>
-<script>
 
+<script>
     function ajaxGetFTF() {
         $('#showFtfBtn').hide();
         $('#commentsLoader').show();
         $('#ftfDiv').fadeOut(1000);
         request = $.ajax({
-            url: "ajaxGetFTF.php",
-            type: "post",
-            data: {id: $('#userId').val()},
+            url: "/UserProfile/getUserFtfsAjax/"+$('#userId').val(),
+            type: "get",
         });
 
         request.done(function (response, textStatus, jqXHR) {
-            var ftfList = jQuery.parseJSON(response);
+            console.log(response);
+            var ftfList = response;
             html = '<table><tr><th>{{viewprofileDate}}</th><th>{{viewprofileTime}}</th><th>{{viewprofileCache}}</th></tr>';
             bgColor = '#eeeeff';
             var i = 0;
@@ -59,9 +56,7 @@ jQuery(function($) {
         });
     }
 </script>
-<style>
 
-</style>
 <!--    CONTENT -->
 <div class="content2-container">
   <?php $view->callChunk('infoBar', '', $view->infoMsg, $view->errorMsg ); ?>

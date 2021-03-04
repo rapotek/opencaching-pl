@@ -1,6 +1,9 @@
 <?php
 namespace src\Utils\Uri;
 
+use ReflectionException;
+use src\Utils\Debug\Debug;
+
 /**
  * Route schema:
  * <site>/[ctrl-dir.]<controller>/<action>/<params>
@@ -49,20 +52,27 @@ class SimpleRouter
 
         $link = "/$ctrl";
 
-        if(!is_null($action)){
+        if(!is_null($action)) {
             $link .= "/$action";
-        }else{
-            if(!is_null($params)){
+        } else {
+            if(!is_null($params)) {
                 // set default action only if $params are present
                 $link .= "/".self::DEFAULT_ACTION;
             }
         }
 
+        /**
+         * TODO: There is still a problem of slashes in arg. content
+         *  - default apache config prevents %2F in non-query part of URI
+         */
         if(!is_null($params)){
             if(is_array($params)){
-                $link .= '/'.implode("/",$params);
-            }else{
-                $link .= '/'.$params;
+                array_walk($params, function (&$val, $x){
+                    $val = urlencode($val);
+                });
+                $link .= '/'.implode('/',$params);
+            } else {
+                $link .= '/'.urlencode($params);
             }
         }
 
@@ -93,28 +103,54 @@ class SimpleRouter
         // identify requested (or default) Controller/Action/params
         list($ctrlName, $actionName, $params) = self::parse();
 
-        // create controller object
-        $ctrl = new $ctrlName($actionName);
-
-        // check if controller/action is ready to be call by router
-        if( !is_a($ctrl, self::CTRL_BASE_CLASS) ||
-            !method_exists ( $ctrl, $actionName ) ||
-            !$ctrl->isCallableFromRouter($actionName)){
-
-            // router prevent this call - use defaults instead!
-            $ctrlName = self::getControllerWithNamespace(self::ERROR_CTRL);
-            $actionName = self::ERROR_ACTION;
-            $params = ['Requested action not found',403];
-
-            $ctrl = new $ctrlName($actionName);
+        // first check the class filename
+        if(!file_exists(self::getClassFilePath($ctrlName))) {
+            self::displayErrorAndExit("No such file: $ctrlName", 403);
         }
 
-        call_user_func_array(array($ctrl, $actionName), $params);
+        // create class reflection
+        try {
+            $ctrlReflection = new \ReflectionClass ($ctrlName);
+        } catch (ReflectionException $ex) {
+            self::displayErrorAndExit('Improper ctrl name', 403);
+        }
 
-        // this should be a dead code!
+        // check if the controller is not abstract
+        if ($ctrlReflection->isAbstract()) {
+            self::displayErrorAndExit('Abstr. ctrl', 403);
+        }
+
+        // check if this is the subclass of BaseController
+        if(!$ctrlReflection->isSubclassOf(self::CTRL_BASE_CLASS)){
+            self::displayErrorAndExit('Not instance of BaseController', 403);
+        }
+
+        // check if action can be called
+        $ctrl = $ctrlReflection->newInstance($actionName);
+        if (!$ctrl->isCallableFromRouter($actionName)) {
+            self::displayErrorAndExit('Not callable from router', 403);
+        }
+
+        try {
+            $actionReflection = $ctrlReflection->getMethod($actionName);
+        } catch (ReflectionException $ex) {
+            self::displayErrorAndExit('Wrong action', 403);
+        }
+
+        if (!$actionReflection->isPublic()){
+            self::displayErrorAndExit('Calling non-public method', 403);
+        }
+
+        // check if the given params number is enough for this action
+        $numOfReqParams = $actionReflection->getNumberOfRequiredParameters();
+        if ($numOfReqParams != 0 && (!is_array($params) || $numOfReqParams > count($params)) ) {
+            self::displayErrorAndExit('Not enough params', 403);
+        }
+
+        // run this requests
+        call_user_func_array(array($ctrl, $actionName), $params);
         exit;
     }
-
 
     /**
      * Redirect to new location
@@ -125,7 +161,7 @@ class SimpleRouter
     public static function redirect($uri, $absoluteUri=null)
     {
         if (is_null($absoluteUri)) {
-            // if the first char of $uri is not a slash add slash
+            // if the first char of $uri is not a slash - add slash
             if (substr($uri, 0, 1) !== '/') {
                 $uri = '/'.$uri;
             }
@@ -133,6 +169,7 @@ class SimpleRouter
         }
 
         header("Location: $uri");
+        exit;
     }
 
     /**
@@ -168,20 +205,20 @@ class SimpleRouter
      */
     private static function parse()
     {
-        if(!isset($_GET[self::ROUTE_GET_VAR])){
+        if (!isset($_GET[self::ROUTE_GET_VAR])) {
             $routeParts = array();
-        }else{
+        } else {
             $routeParts = explode('/', $_GET[self::ROUTE_GET_VAR]);
         }
 
-        if(empty($routeParts)){
+        if (empty($routeParts)) {
             // this is just emprty route - display DEFAUTS
             $routeParts[0] = self::DEFAULT_CTRL;
-        }else{
+        } else {
             // ctrl part is empty - hmm... assume someone add too many slashes
-            if(empty($routeParts[0])){
+            if (empty($routeParts[0])) {
                 array_shift($routeParts);
-                if( empty($routeParts) || empty($routeParts[0]) ){
+                if (empty($routeParts) || empty($routeParts[0])) {
                     // stop guess - came back to default
                     $routeParts[0] = self::DEFAULT_CTRL;
                 }
@@ -191,28 +228,18 @@ class SimpleRouter
         // assume that this is ctrl name - add full namespace path to it
         $ctrl = self::getControllerWithNamespace($routeParts[0]);
 
-        // check if such file exists
-        if(!file_exists(self::getClassFilePath($ctrl))){
-            // there is no such file! - display error
-            $ctrl = self::getControllerWithNamespace(self::ERROR_CTRL);
-            $action = self::ERROR_ACTION;
-            $params = ['Requested resource not found!?', 404];
-
-        }else{
-            // ctrl found, check the action
-            if( !isset($routeParts[1]) || empty($routeParts[1]) ){
-                $action = self::DEFAULT_ACTION;
-            } else {
-                $action = $routeParts[1];
-            }
-            // and params...
-            $params = array_slice($routeParts, 2);
+        // ctrl found, check the action
+        if( !isset($routeParts[1]) || empty($routeParts[1]) ){
+            $action = self::DEFAULT_ACTION;
+        } else {
+            $action = $routeParts[1];
         }
+
+        // and params...
+        $params = array_slice($routeParts, 2);
 
         return array($ctrl, $action, $params);
     }
-
-
 
     private static function checkControllerName($ctrl)
     {
@@ -227,5 +254,16 @@ class SimpleRouter
         }else{
             return implode('.',$parts);
         }
+    }
+
+    private static function displayErrorAndExit($message, $httpCode)
+    {
+        global $debug_page;
+
+        $message = $debug_page ? $message : 'Improper request';
+
+        $ctrlName = self::getControllerWithNamespace(self::ERROR_CTRL);
+        call_user_func_array(array(new $ctrlName(self::ERROR_ACTION),  self::ERROR_ACTION), [$message, $httpCode]);
+        exit;
     }
 }

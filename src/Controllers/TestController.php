@@ -16,14 +16,16 @@ use src\Models\ChunkModels\DynamicMap\CacheSetMarkerModel;
 use src\Models\GeoCache\GeoCache;
 use src\Models\GeoCache\MultiCacheStats;
 use src\Models\GeoCache\MultiLogStats;
-use src\Models\User\User;
 use src\Models\User\MultiUserQueries;
 use src\Models\GeoCache\GeoCacheLog;
 use src\Utils\Text\Formatter;
 use src\Utils\Uri\OcCookie;
-use src\Models\Coordinates\Coordinates;
 use src\Utils\FileSystem\FileUploadMgr;
 use src\Models\OcConfig\OcConfig;
+use src\Utils\Uri\SimpleRouter;
+use src\Models\Coordinates\Coordinates;
+use src\Models\Coordinates\Altitude;
+use src\Controllers\Cron\Jobs\AltitudeUpdateJob;
 
 class TestController extends BaseController
 {
@@ -45,9 +47,23 @@ class TestController extends BaseController
 
     public function index()
     {
+        $methods = get_class_methods($this);
+        foreach ($methods as $method) {
+            switch($method){
+                case "__construct":
+                case "isCallableFromRouter":
+                case "index":
+                    // skip methods above
+                    break;
+                default:
+                    $link = SimpleRouter::getLink(self::class, $method);
+                    echo "<a href='$link'>$method</a> <br/>";
+            }
+        }
+    }
 
+    public function lorenIpsumContent(){
         $this->view->setTemplate('test/testTemplate');
-
         $this->view->buildView();
     }
 
@@ -249,7 +265,7 @@ class TestController extends BaseController
         // get some caches with logs...
         $caches = [];
         $userIds = [];
-        foreach(MultiCacheStats::getGeocachesById([1,2,3,4,5]) as $c){
+        foreach(MultiCacheStats::getGeocachesDataById([1,2,3,4,5]) as $c){
             $caches[$c['cache_id']] = $c;
             $userIds[$c['user_id']] = null;
         }
@@ -343,14 +359,13 @@ class TestController extends BaseController
         // use the same upload model
         $uploadModel = UploadModel::TestTxtUploadFactory();
 
-        // save uploaded files
-        $newFiles = FileUploadMgr::processFileUpload($uploadModel);
+        try{
+            // save uploaded files
+            $newFiles = FileUploadMgr::processFileUpload($uploadModel);
 
-        // check the upload status
-        if(!is_array($newFiles)){
-          // something goes wrong - error returned!
-          $this->ajaxErrorResponse($newFiles, 500);
-          exit;
+        } catch (\RuntimeException $e){
+            // some error occured on upload processing
+            $this->ajaxErrorResponse($e->getMessage(), 500);
         }
 
         // FileUploadMgr returns array of new files saved in given directory on server
@@ -425,4 +440,28 @@ class TestController extends BaseController
         d(OcConfig::getEmailSubjectPrefix());
     }
 
+    public function routerTester($arg1=null, $arg2=null)
+    {
+        d($_GET);
+        d($arg1);
+        d($arg2);
+
+        $link = SimpleRouter::getLink(self::class, 'routerTester',[$arg1, $arg2]);
+        echo "<a href='$link'>GO</a>";
+    }
+
+    public function altitudeTest($lat=null, $lon=null)
+    {
+        if(!$lat){
+            $lat = 54;
+        }
+        if(!$lon){
+            $lon = 18;
+        }
+
+        $coords = Coordinates::FromCoordsFactory($lat, $lon);
+        $altitude = Altitude::getAltitude($coords);
+        d($coords);
+        d($altitude);
+    }
 }

@@ -121,52 +121,63 @@
 
 
     function ajaxRmOtherUserCache(){
-    $('#AloaderNewCacheAdding').show();
-            $('#searchCacheSection2').fadeOut(500);
-            var newCacheId2 = $('#newCacheNameId2').val();
-            request = $.ajax({
-            url: "powerTrail/ajaxAddCacheToPt.php",
-                    type: "post",
-                    data:{projectId: $('#xmd34nfywr54').val(), cacheId: newCacheId2, rmOtherUserCacheFromPt: 1 },
-            });
-            request.done(function (response, textStatus, jqXHR){
+        $('#AloaderNewCacheAdding').show();
+        $('#searchCacheSection2').fadeOut(500);
+
+        var newCacheId2 = $('#newCacheNameId2').val();
+
+        request = $.ajax({
+                url: "/GeoPath/rmCacheFromGeopathAjax/"+newCacheId2,
+                type: "get",
+        });
+
+        request.done(function (response, textStatus, jqXHR){
+
+            console.log(response, textStatus);
+
             ajaxGetPtCaches();
-                    if (response == 'Removed'){
-            $("#AloaderNewCacheAddingOKimg").fadeIn(800);
-                    $("#message").html('{{pt161}}');
-                    $("#messageDiv").fadeIn(800);
-                    $(function() {
-                    setTimeout(function() {
-                    $("#AloaderNewCacheAddingOKimg").fadeOut(1000);
-                            $("#messageDiv").fadeOut(1000);
-                    }, 3000);
-                    });
+
+            if (textStatus = 'success'){
+                $("#AloaderNewCacheAddingOKimg").fadeIn(800);
+                $("#message").html('{{pt161}}');
+                $("#messageDiv").fadeIn(800);
+                $(function() {
+                  setTimeout(function() {
+                  $("#AloaderNewCacheAddingOKimg").fadeOut(1000);
+                  $("#messageDiv").fadeOut(1000);
+                  }, 3000);
+                });
             } else {
-            $("#AloaderNewCacheAddingNOKimg").fadeIn(800);
-                    $("#message").html('{{pt160}}');
-                    $("#messageDiv").fadeIn(800);
-                    $(function() {
-                    setTimeout(function() {
+                $("#AloaderNewCacheAddingNOKimg").fadeIn(800);
+                $("#message").html('{{pt160}}');
+                $("#messageDiv").fadeIn(800);
+                $(function() {
+                setTimeout(function() {
                     $("#AloaderNewCacheAddingNOKimg").fadeOut(1000);
                             $("#messageDiv").fadeOut(1000);
                     }, 3000);
-                    });
+                });
             }
+
             console.log("ajaxRmOtherUserCache finished successfully: " + response);
-            });
-            request.fail(function (jqXHR, textStatus, errorThrown){
+        });
+
+        request.fail(function (jqXHR, textStatus, errorThrown){
+
             // log the error to the console
             console.error(
-                    "The following error occured: " +
-                    textStatus, errorThrown
-                    );
-            });
-            request.always(function () {
-            toggleSearchCacheSection2();
-                    $('#AloaderNewCacheAdding').hide();
-            });
-            return false;
-    }
+              "The following error occured: " +
+              textStatus, errorThrown
+            );
+        });
+
+        request.always(function () {
+          toggleSearchCacheSection2();
+          $('#AloaderNewCacheAdding').hide();
+        });
+
+        return false;
+   }
 
 
     function reloadWithFinalsChoice(){
@@ -402,54 +413,51 @@
     }
 
     function toggleNameEdit() {
-    if ($('#toggleNameEditButton').is(":visible")){
-    $('#toggleNameEditButton').fadeOut(800);
+        if ($('#toggleNameEditButton').is(":visible")){
+            $('#toggleNameEditButton').fadeOut(800);
             $(function() {
-            setTimeout(function() {
-            $("#editPtName").fadeIn(800);
-            }, 800);
+                setTimeout(function() {
+                    $("#editPtName").fadeIn(800);
+                }, 800);
             });
-    } else {
-    $('#editPtName').fadeOut(800);
+        } else {
+            $('#editPtName').fadeOut(800);
             $(function() {
-            setTimeout(function() {
-            $("#toggleNameEditButton").fadeIn(800);
-            }, 800);
+                setTimeout(function() {
+                    $("#toggleNameEditButton").fadeIn(800);
+                }, 800);
             });
-    }
+        }
     }
 
     function cancellEditName() {
-    toggleNameEdit();
+        toggleNameEdit();
     }
-
-    function cancellImage() {
-    toggleImageEdit();
-    }
-
 
     function  ajaxGetPtCaches(getFinal){
-    $('#cachesLoader').show();
-            if (getFinal == 1){
-    getFinal = '&choseFinalCaches=1'
-    } else {
-    getFinal = '';
-    }
+        $('#cachesLoader').show();
+        if (getFinal == 1){
+          getFinal = '&choseFinalCaches=1'
+        } else {
+          getFinal = '';
+        }
 
-    request = $.ajax({
-    url: "powerTrail/ajaxGetPowerTrailCaches.php?ptAction=showSerie&ptrail=" + $('#xmd34nfywr54').val() + getFinal,
+        request = $.ajax({
+            url: "powerTrail/ajaxGetPowerTrailCaches.php?ptAction=showSerie&ptrail=" + $('#xmd34nfywr54').val() + getFinal,
             type: "post",
             data:{
                 projectId: $('#xmd34nfywr54').val(),
                 lang: '{language4js}'
             },
-    });
-            request.done(function (response, textStatus, jqXHR){
+        });
+
+        request.done(function (response, textStatus, jqXHR){
             $('#PowerTrailCaches').html(response);
-            });
-            request.always(function () {
+        });
+
+        request.always(function () {
             $('#cachesLoader').hide();
-            });
+        });
     }
 
     function toggleStatusEdit() {
@@ -548,22 +556,22 @@
     }
 
     function toggleImageEdit(){
-    if ($('#toggleImageEditButton').is(":visible")){
-    $("#toggleImageEditButton").fadeOut(800);
-            $(function() {
-            setTimeout(function() {
-            $("#newImage").fadeIn(800);
-            }, 801);
-            });
-    } else {
-    $("#newImage").fadeOut(800);
-            $(function() {
-            setTimeout(function() {
-            $("#toggleImageEditButton").fadeIn(800);
-                    $('#f1_upload_form').show();
-            }, 801);
-            });
-    }
+        if ($('#toggleImageEditButton').is(":visible")){
+            $("#toggleImageEditButton").fadeOut(800);
+                    $(function() {
+                    setTimeout(function() {
+                    $("#newImage").fadeIn(800);
+                    }, 801);
+                    });
+        } else {
+            $("#newImage").fadeOut(800);
+                    $(function() {
+                    setTimeout(function() {
+                    $("#toggleImageEditButton").fadeIn(800);
+                            $('#f1_upload_form').show();
+                    }, 801);
+                    });
+        }
     }
 
 
@@ -724,75 +732,74 @@
     }
 
     function ajaxAddOtherUserCache(){
-    $('#AloaderNewCacheAdding').show();
-            $('#searchCacheSection').fadeOut(500);
-            var newCacheId = $('#newCacheNameId').val();
-            request = $.ajax({
-            url: "powerTrail/ajaxAddCacheToPt.php",
-                    type: "post",
-                    data:{projectId: $('#xmd34nfywr54').val(), cacheId: newCacheId },
-            });
-            request.done(function (response, textStatus, jqXHR){
-            ajaxGetPtCaches();
-                    if (response == 'cacheAdded') {
-            $("#AloaderNewCacheAddingOKimg").fadeIn(800);
-                    $('#message').html('{{pt162}}');
-                    $("#messageDiv").fadeIn(800);
-                    $(function() {
-                    setTimeout(function() {
-                    $("#AloaderNewCacheAddingOKimg").fadeOut(1000);
-                            $("#messageDiv").fadeOut(1000);
-                    }, 3000);
-                    });
-            }
-            if (response == 'cache is already candidate or belongs to other pt') {
-            $("#AloaderNewCacheAddingNOKimg").fadeIn(800);
-                    $('#message').html('{{pt197}}');
-                    $("#messageDiv").fadeIn(800);
-                    $(function() {
-                    setTimeout(function() {
-                    $("#AloaderNewCacheAddingNOKimg").fadeOut(1000);
-                            //$("#messageDiv").fadeOut(1000);
-                    }, 3000);
-                    });
-            }
-            if (response == 'cache added as cache candidate') {
-            $("#AloaderNewCacheAddingIimg").fadeIn(800);
-                    $('#message').html('{{pt198}}');
-                    $("#messageDiv").fadeIn(800);
-                    $(function() {
-                    setTimeout(function() {
-                    $("#AloaderNewCacheAddingIimg").fadeOut(1000);
-                            // $("#messageDiv").fadeOut(1000);
-                    }, 3000);
-                    });
-            }
-            if (response == 'this cache cannot be removed') {
-            $("#AloaderNewCacheAddingNOKimg").fadeIn(800);
-                    $('#message').html('{{pt200}}');
-                    $("#messageDiv").fadeIn(800);
-                    $(function() {
-                    setTimeout(function() {
-                    $("#AloaderNewCacheAddingNOKimg").fadeOut(1000);
-                            // $("#messageDiv").fadeOut(1000);
-                    }, 3000);
-                    });
+
+        $('#AloaderNewCacheAdding').show();
+        $('#searchCacheSection').fadeOut(500);
+        var newCacheId = $('#newCacheNameId').val();
+
+        request = $.ajax({
+            url: "/GeoPath/addCacheCandidateAjax/"+$('#xmd34nfywr54').val()+"/"+newCacheId,
+            type: "get",
+        });
+
+        request.done(function (response, textStatus, jqXHR){
+
+            console.log(response);
+
+            if(response.hasOwnProperty('localizedMessage')){
+                msg = response.localizedMessage;
+            } else if(response.hasOwnProperty('message')){
+                msg = response.message;
+            } else {
+                msg = 'Request OK.';
             }
 
-            console.log("ajaxAddOtherUserCache succesfully: " + response);
+            $("#AloaderNewCacheAddingOKimg").fadeIn(800);
+            $('#message').html(msg);
+            $("#messageDiv").fadeIn(800);
+            $(function() {
+                setTimeout(function() {
+                    $("#AloaderNewCacheAddingOKimg").fadeOut(1000);
+                    $("#messageDiv").fadeOut(1000);
+                }, 3000);
             });
-            request.fail(function (jqXHR, textStatus, errorThrown){
-            // log the error to the console
-            console.error(
-                    "The following error occured: " +
-                    textStatus, errorThrown
-                    );
+
+        });
+
+        request.fail(function (jqXHR, textStatus, errorThrown){
+
+            console.log(jqXHR.responseJSON);
+
+            // some error occured
+            var response = jqXHR.responseJSON;
+            console.log(response);
+            if(response.hasOwnProperty('localizedMessage')){
+              msg = response.localizedMessage;
+            } else if(response.hasOwnProperty('message')){
+              msg = response.message;
+            } else {
+              msg = 'Request FAILED!';
+            }
+
+            $("#AloaderNewCacheAddingNOKimg").fadeIn(800);
+            $('#message').html(msg);
+            $("#messageDiv").fadeIn(800);
+            $(function() {
+                setTimeout(function() {
+                $("#AloaderNewCacheAddingNOKimg").fadeOut(1000);
+                        // $("#messageDiv").fadeOut(1000);
+                }, 3000);
             });
-            request.always(function () {
-            toggleSearchCacheSection();
-                    $('#AloaderNewCacheAdding').hide();
-            });
-            return false;
+
+        });
+
+        request.always(function (jqXHR, textStatus, errorThrown) {
+
+          toggleSearchCacheSection();
+          $('#AloaderNewCacheAdding').hide();
+
+        });
+        return false;
     }
 
     function checkCacheByWpt(id){
@@ -1094,71 +1101,86 @@
     }
 
     var request;
-            function ajaxCountPtCaches(ptId) {
-            $('#ajaxLoaderCacheCount').show();
-                    $('#cacheCountUserActions').hide();
-                    request = $.ajax({
-                    url: "powerTrail/ajaxCachePtCount.php",
-                            type: "post",
-                            data:{projectId: ptId},
-                    });
-                    // callback handler that will be called on success
-                    request.done(function (response, textStatus, jqXHR){
-                    $('#powerTrailCacheCount').html(response);
-                            $('#cCountOKimg').fadeIn(500);
-                            $(function() {
-                            setTimeout(function() {
-                            $("#cCountOKimg").fadeOut(1000)
-                            }, 3000);
-                            });
-                            console.log("clickShow: " + response);
-                    });
-                    request.fail(function (jqXHR, textStatus, errorThrown){
-                    console.error("The following error occured: " + textStatus, errorThrown);
-                    });
-                    request.always(function () {
-                    $('#ajaxLoaderCacheCount').hide();
-                            $('#cacheCountUserActions').show();
-                    });
-                    return false;
-            }
+    function ajaxCountPtCaches(ptId) {
+        $('#ajaxLoaderCacheCount').show();
+        $('#cacheCountUserActions').hide();
+
+        request = $.ajax({
+            url: "/geoPath/refreshCachesNumberAjax/"+ptId,
+            type: "get"
+        });
+
+        // callback handler that will be called on success
+        request.done(function (response, textStatus, jqXHR){
+          $('#powerTrailCacheCount').html(response);
+          $('#cCountOKimg').fadeIn(500);
+          $(function() {
+            setTimeout(function() {
+              $("#cCountOKimg").fadeOut(1000)
+            }, 3000);
+          });
+          console.log("Cache count updated: ", response);
+        });
+
+        request.fail(function (jqXHR, textStatus, errorThrown) {
+          console.error("The following error occured: " + textStatus, errorThrown);
+        });
+
+        request.always(function () {
+          $('#ajaxLoaderCacheCount').hide();
+          $('#cacheCountUserActions').show();
+        });
+
+        return false;
+    }
 
     function ajaxAddCacheToPT(cacheId) {
-    var projectId = $('#ptSelectorForCache' + cacheId).val();
-            $('#addCacheLoader' + cacheId).show();
-            $.ajax({
-            url: "powerTrail/ajaxAddCacheToPt.php",
-                    type: "post",
-                    data: {projectId: projectId, cacheId: cacheId},
-                    success: function(data){
-                    if (data == 'cacheAddedToPt' || data == 'removed'){
-                    $("#h" + cacheId).val(projectId);
-                            $("#cacheInfo" + cacheId).show();
-                            $(function() {
-                            setTimeout(function() {
-                            $("#cacheInfo" + cacheId).fadeOut(1000);
-                            }, 3000);
-                            });
-                    }
+        console.log("ajaxAddCacheToPT");
 
-                    if (data == 'this cache cannot be removed'){
-                    $("#cacheInfoNOK" + cacheId).show();
-                            var defVal = $("#h" + cacheId).val();
-                            $('#ptSelectorForCache' + cacheId).val(defVal);
-                            $(function() {
-                            setTimeout(function() {
-                            $("#cacheInfoNOK" + cacheId).fadeOut(1000);
-                            }, 3000);
-                            });
-                    }
-                    $('#addCacheLoader' + cacheId).hide();
-                            console.log(data);
-                    },
-                    error:function(){
-                    alert("failure");
-                            $('#addCacheLoader' + cacheId).hide();
-                    }
-            });
+        var projectId = $('#ptSelectorForCache' + cacheId).val();
+        $('#addCacheLoader' + cacheId).show();
+        $.ajax({
+            url: "/geoPath/addOwnCacheToGeopathAjax/"+projectId+'/'+cacheId,
+            type: "get",
+
+            success: function(response, textStatus, jqXHR){
+
+                console.log(jqXHR.responseJSON);
+
+                var response = jqXHR.responseJSON;
+                if(response.hasOwnProperty('localizedMessage')){
+                  msg = response.localizedMessage;
+                } else if(response.hasOwnProperty('message')){
+                  msg = response.message;
+                } else {
+                  msg = 'Request OK!';
+                }
+
+                $("#h" + cacheId).val(projectId);
+                $("#cacheInfo" + cacheId).show();
+                $(function() {
+                    setTimeout(function() {
+                      $("#cacheInfo" + cacheId).fadeOut(1000);
+                    }, 3000);
+                });
+
+                $('#addCacheLoader' + cacheId).hide();
+            },
+            error:function(jqXHR, textStatus, errorThrown){
+
+                console.log(jqXHR.responseJSON);
+
+                $("#cacheInfoNOK" + cacheId).show();
+                var defVal = $("#h" + cacheId).val();
+                $('#ptSelectorForCache' + cacheId).val(defVal);
+                $(function() {
+                    setTimeout(function() {
+                      $("#cacheInfoNOK" + cacheId).fadeOut(1000);
+                    }, 3000);
+                });
+                $('#addCacheLoader' + cacheId).hide();
+            }
+        });
     }
 
 
@@ -1382,7 +1404,8 @@
             <table style="border-collapse: collapse; width: 100%;">
                 <tr><!-- ptName & Logo -->
                     <td style="width: 251px;">
-                        <table style="height: 250px; width: 250px;"><tr><td style="vertical-align: middle; text-align: center;"><span id="powerTrailLogo"><img class="powerTrailLogo" src="{powerTrailLogo}" alt=""></span></td></tr></table>
+                        <table style="height: 250px; width: 250px;"><tr><td style="vertical-align: middle; text-align: center;">
+                        <span id="powerTrailLogo"><img class="powerTrailLogo" src="{powerTrailLogo}" alt=""></span></td></tr></table>
                         <img style="display: none" id="ajaxLoaderLogo" src="images/misc/ptPreloader.gif" alt="">
                     </td>
                     <td style="text-align: center;" colspan="2">
@@ -1391,19 +1414,51 @@
                 </tr>
                 <tr><!-- name&edit edit button -->
                     <td>
+
                         <p id="toggleImageEditButton" style="text-align: center; display: {displayAddCachesButtons}">
-                            <a href="javascript:void(0)" onclick="toggleImageEdit()" class="editPtDataButton">{{pt060}}</a>
+                            <a id="uploadLogoBtn" href="javascript:void(0)" class="editPtDataButton">{{pt060}}</a>
                         </p>
-                        <div id="newImage" style="display: none">
-                            <form action="powerTrail/ajaxImage.php" method="post" enctype="multipart/form-data" target="upload_target" onsubmit="startUpload();" >
-                                <p id="f1_upload_form" style="text-align: center;"><br>
-                                    File: <input name="myfile" type="file" size="30" />
-                                    <input type="hidden" name="powerTrailId" value="{powerTrailId}">
-                                    <a href="javascript:void(0)" onclick="cancellImage()" class="editPtDataButton">{{pt031}}</a>
-                                    <a href="javascript:void(0)" onclick="$(this).closest('form').submit()" class="editPtDataButton">{{pt044}}</a>
-                                </p>
-                                <iframe id="upload_target" src="about:blank" name="upload_target" style="width:0;height:0;border:0px solid #fff;"></iframe>
-                        </div>
+                        <?php if(isset($view->logoUploadModelJson)) {?>
+                        <script>
+                          $('#uploadLogoBtn').click( function(e){
+
+                            /*
+                              ocUpload takes two params:
+                               - params json - see UploadModel
+                               - callback function
+
+                              on end of upload callback will be called with JSON param:
+                                {
+                                  success: true|false,                // true on success | false on error
+                                  message: 'error-description',       // tech. error description in english (usually not for end-user) (only on fail)
+                                  newfiles: ['fileA','fileB','fileC'] // list of urls to new files saved on server (only on success)
+                                }
+                            */
+                            ocUpload(<?=$view->logoUploadModelJson?>, function(uploadResult){
+
+                              if(uploadResult.success){
+                                //upload successed
+                                var newLogo = uploadResult.newFiles;
+                                if(Array.isArray(uploadResult.newFiles)){
+                                  newLogo = uploadResult.newFiles[0];
+                                }
+
+                                $('#powerTrailLogo').fadeOut(800);
+                                setTimeout(function() {
+                                  console.log('new geoPathImg: ', newLogo);
+                                  $('#powerTrailLogo img').attr("src", newLogo);
+                                  $("#powerTrailLogo").fadeIn(800);
+                                }, 801);
+
+                              } else {
+                                // upload fail
+                                console.log('upload fail');
+                              }
+
+                            });
+                          });
+                        </script>
+                        <?php } //if-isset($view->logoUploadModelJson ?>
                     </td>
                     <td colspan="2">
                         <p style="text-align: center;">

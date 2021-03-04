@@ -1,14 +1,10 @@
 <?php
-/**
- * Configuration of general site properties of OC UK
- */
 
 /**
- * Primary countries for this node.
+ * General site properties configuration
  *
- * UK is one of the few countries where the TLD differs from ISO-3166 code!
+ * Those are configuration overrides for OCUK node only.
  */
-$site['primaryCountries'] = ['GB'];
 
 /**
  * Site name for the node
@@ -27,6 +23,20 @@ $site['pageTitle'] = 'Geocaching Opencaching UK';
 $site['ocNodeId'] = 6;
 
 /**
- * Site main domain - this shoudl be only main part of domain eg. opencaching.pl for OCPL
+ * Site main domain - this should be only main part of domain eg. opencaching.pl for OCPL
  */
 $site['mainDomain'] = 'opencache.uk';
+
+/**
+ * Primary countries for this node.
+ *
+ * UK is one of the few countries where the TLD differs from ISO-3166 code!
+ */
+$site['primaryCountries'] = ['GB'];
+
+/**
+ * List of default countries used to present on countries list (for example in search).
+ * List will be presented in same order as below.
+ * Use only two-letters codes UPPERCASE.
+ */
+$site['defaultCountriesList'] = ['DE', 'NL', 'PL', 'RO', 'GB'];

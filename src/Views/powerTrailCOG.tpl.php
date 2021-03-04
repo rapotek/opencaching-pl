@@ -1,4 +1,7 @@
 <?php
+
+use src\Utils\Uri\Uri;
+
 $view->callChunk('tinyMCE', false);
 ?>
 
@@ -42,13 +45,12 @@ $view->callChunk('tinyMCE', false);
         $("#rmCacheLoader" + cacheId).show();
 
         request = $.ajax({
-            url: "powerTrail/ajaxAddCacheToPt.php",
-            type: "post",
-            data: {projectId: $('#ptId').val(), removeByCOG: 1, cacheId: cacheId},
+            url: "/GeoPath/rmCacheFromGeopathAjax/"+cacheId,
+            type: "get",
         });
 
         request.done(function (response, textStatus, jqXHR) {
-            if (response == 'removedByCOG') {
+            if (textStatus == "success") {
                 $('#tr' + cacheId).remove();
             }
 
@@ -57,7 +59,6 @@ $view->callChunk('tinyMCE', false);
 
         request.always(function () {
             $("#rmCacheLoader" + cacheId).hide();
-
         });
     }
 
@@ -77,6 +78,8 @@ $view->callChunk('tinyMCE', false);
     </div>
 
     <div style="display: {selPtDiv}">
+        <a class="btn btn-default btn-sm" href="<?=$v->allPtsUrl?>"><?=$v->allPtsText?></a>
+        <br/>
         <form action="powerTrailCOG.php" id="selPt" class="form-group-sm">
             {ptSelector} &nbsp;<a href="javascript:void(0);" onclick="$('#selPt').submit();" class="btn btn-default btn-sm">{{pt209}}</a>
         </form>

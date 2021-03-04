@@ -1,12 +1,10 @@
 <?php
-/**
- * Configuration of general site properties of OCRO
- */
 
 /**
- * Primary countries for this node.
+ * General site properties configuration
+ *
+ * Those are configuration overrides for OCRO node only.
  */
-$site['primaryCountries'] = ['RO'];
 
 /**
  * Site name for the node
@@ -25,6 +23,23 @@ $site['pageTitle'] = 'Opencaching România';
 $site['ocNodeId'] = 16;
 
 /**
- * Site main domain - this shoudl be only main part of domain eg. opencaching.pl for OCPL
+ * Site main domain - this should be only main part of domain eg. opencaching.pl for OCPL
  */
 $site['mainDomain'] = 'opencaching.ro';
+
+/**
+ * Primary countries for this node.
+ */
+$site['primaryCountries'] = ['RO'];
+
+/**
+ * List of default countries used to present on countries list (for example in search).
+ * List will be presented in same order as below.
+ * Use only two-letters codes UPPERCASE.
+ */
+$site['defaultCountriesList'] = ['DE', 'NL', 'PL', 'RO', 'GB'];
+
+/**
+ * Icons customization
+ */
+$site['mainViewIcons']['shortcutIcon'] = '/images/icons/oc_icon-ro.png';

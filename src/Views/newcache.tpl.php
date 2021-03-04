@@ -5,110 +5,121 @@ $view->callChunk('tinyMCE');
 
 <script>
 
-            $(function() {
-            $("#waypointsToChose").dialog({
-            position: ['center', 150],
-                    autoOpen: false,
-                    width: 500,
-                    modal: true,
-                    show: {effect: 'bounce', duration: 350, /* SPECIF ARGUMENT */ times: 3},
-                    hide: "explode",
-                    buttons:
-            {
-            {{newCacheWpClose}}: function()
-            {
-            $(this).dialog("close");
-            }
-            }
-            });
-            });
-            function hiddenDatePickerChange(identifier){
-            var dateTimeStr = $('#' + identifier + 'DatePicker').val();
-                    var dateArr = dateTimeStr.split("-");
-                    $("#" + identifier + "_year").val(dateArr[0]);
-                    $("#" + identifier + "_month").val(dateArr[1]);
-                    $("#" + identifier + "_day").val(dateArr[2]);
-            }
-
     $(function() {
-            chkcountry2();
-            $.datepicker.setDefaults($.datepicker.regional['pl']);
-            $('#hiddenDatePicker, #activateDatePicker').datepicker(
-                $.datepicker.regional["{language4js}"]
-            ).datepicker("option", "dateFormat", "yy-mm-dd").val();
+        $("#waypointsToChose").dialog({
+            position: ['center', 150],
+            autoOpen: false,
+            width: 500,
+            modal: true,
+            show: {effect: 'bounce', duration: 350, /* SPECIF ARGUMENT */ times: 3},
+            hide: "explode",
+            buttons: {
+              {{newCacheWpClose}}: function() {
+                $(this).dialog("close");
+              }
+            }
+        });
     });
-            function checkRegion(){
-            // console.log($('#lat_min').val().length);
-            if ($('#lat_h').val().length > 0 &&
-                    $('#lon_h').val().length > 0 &&
-                    $('#lat_min').val().length > 0 &&
-                    $('#lon_min').val().length > 0) {
 
-            var latmin = parseFloat($('#lat_min').val());
-                    var lonmin = parseFloat($('#lon_min').val());
-                    var lat = parseFloat($('#lat_h').val()) + latmin / 60;
-                    if ($('#latNS').val() == 'S') lat = - lat;
-                    var lon = parseFloat($('#lon_h').val()) + lonmin / 60;
-                    if ($('#lonEW').val() == 'W') lon = - lon;
+    // data picker init
+    $(function() {
+      updateRegionsList();
+      $.datepicker.setDefaults($.datepicker.regional['pl']);
+      $('#hiddenDatePicker, #activateDatePicker').datepicker (
+        $.datepicker.regional["{language4js}"]
+      ).datepicker("option", "dateFormat", "yy-mm-dd").val();
+    });
 
-                    request = $.ajax({
-                      url: "ajaxRetreiveRegionByCoordinates.php",
-                            type: "post",
-                            data:{lat: lat, lon: lon},
-                      });
+    function hiddenDatePickerChange(identifier){
+        var dateTimeStr = $('#' + identifier + 'DatePicker').val();
+        var dateArr = dateTimeStr.split("-");
+        $("#" + identifier + "_year").val(dateArr[0]);
+        $("#" + identifier + "_month").val(dateArr[1]);
+        $("#" + identifier + "_day").val(dateArr[2]);
+    }
 
-                    // callback handler that will be called on success
-                    request.done(function (response, textStatus, jqXHR){
-                      if (response == 'false') {
-                        return false;
-                      }
-                    obj = JSON.parse(response);
+    function checkRegion(){
+        console.log('checkRegion');
 
-                    if ($('#country').val() == obj['code1']) {
-                      $('#region1').val(obj['code3']);
-                    } else {
-                      $('#country').val(obj['code1']);
-                            chkcountry2();
-                            $(function() {
-                              setTimeout(function() {
-                                $('#region1').val(obj['code3']);
-                              }, 2000);
-                            });
-                    }
-                    });
-                    request.always(function () {
-                    });
-                    // alert(lat+' / '+lon);
-            }
-            }
+        if ($('#lat_h').val().length == 0 ||
+            $('#lon_h').val().length == 0 ) {
+          return;
+        }
 
+        var latmin = parseFloat($('#lat_min').val());
+        if(isNaN(latmin)) {
+          latmin = 0;
+        }
+
+        var lonmin = parseFloat($('#lon_min').val());
+        if(isNaN(lonmin)) {
+          lonmin = 0;
+        }
+
+        var lat = parseFloat($('#lat_h').val()) + latmin / 60;
+        if ($('#latNS').val() == 'S') {
+           lat = - lat;
+        }
+
+        var lon = parseFloat($('#lon_h').val()) + lonmin / 60;
+        if ($('#lonEW').val() == 'W') {
+          lon = - lon;
+        }
+
+        request = $.ajax({
+          url: "/location/getRegionsByLocation/"+lat+'/'+lon,
+          type: "get",
+        });
+
+        // callback handler that will be called on success
+        request.done(function (response, textStatus, jqXHR){
+
+          locationData = response.locationTable;
+          if ( !locationData['code1'] ) {
+            // unknown country
+            return;
+          }
+
+          if ($('#country').val() == locationData['code1']) {
+            // same country, update region
+            $('#region1').val( locationData['code3'] );
+          } else {
+              // country changed
+              $('#country').val( locationData['code1'] );
+              updateRegionsList(locationData['code3']);
+          }
+        });
+
+        request.always(function () { });
+    }
 
     var maAttributes = new Array({jsattributes_array});
-            function startUpload(){
-            $('#f1_upload_form').hide();
-                    $('#ajaxLoaderLogo').show();
-                    return true;
-            }
+
+    function startUpload(){
+      $('#f1_upload_form').hide();
+      $('#ajaxLoaderLogo').show();
+      return true;
+    }
 
     function stopUpload(success){
-    $('#ajaxLoaderLogo').hide();
-            $('#f1_upload_form').show();
-            $('#wptInfo').show();
-            $(function() {
-            setTimeout(function() {
-            $('#wptInfo').fadeOut(1000);
-            }, 5000);
-            });
-            var gpx = jQuery.parseJSON(success);
-            var waypointsCount = count(gpx);
-            //console.log(waypointsCount);
-            //console.log(gpx);
+        $('#ajaxLoaderLogo').hide();
+        $('#f1_upload_form').show();
+        $('#wptInfo').show();
+        $(function() {
+        setTimeout(function() {
+        $('#wptInfo').fadeOut(1000);
+        }, 5000);
+        });
+        var gpx = jQuery.parseJSON(success);
+        var waypointsCount = count(gpx);
+        //console.log(waypointsCount);
+        //console.log(gpx);
 
-            if (waypointsCount == 1){
-    fillFormInputs(gpx[0])
-    }
-    if (waypointsCount > 1){
-    $('#gpxWaypointObject').val(success);
+        if (waypointsCount == 1){
+          fillFormInputs(gpx[0])
+        }
+        if (waypointsCount > 1){
+            $('#gpxWaypointObject').val(success);
             var i = 0;
             var costam = '{{newCacheWpDesc}}<br/><br/>';
             gpx.forEach(function(wayPoint) {
@@ -120,207 +131,217 @@ $view->callChunk('tinyMCE');
             $('#waypointsToChose').html(costam);
             $('#waypointsToChose').dialog('open');
             $(".ui-dialog-titlebar-close").hide();
-    }
-    return true;
+        }
+        return true;
     }
 
     function updateFromWaypoint(waypointId){
-    var gpxWaypointObject = $('#gpxWaypointObject').val();
-            var gpx = jQuery.parseJSON(gpxWaypointObject);
-            fillFormInputs(gpx[waypointId]);
-            $('#waypointsToChose').dialog("close");
-            $('#wptInfo').show();
-            $(function() {
+        var gpxWaypointObject = $('#gpxWaypointObject').val();
+        var gpx = jQuery.parseJSON(gpxWaypointObject);
+        fillFormInputs(gpx[waypointId]);
+        $('#waypointsToChose').dialog("close");
+        $('#wptInfo').show();
+        $(function() {
             setTimeout(function() {
             $('#wptInfo').fadeOut(1000);
             }, 5000);
-            });
+        });
     }
 
     function fillFormInputs(gpx){
-    var CacheHidedate = gpx.time.substring(0, 10);
-            $("#lat_h").val(gpx.coords_lat_h);
-            $("#lon_h").val(gpx.coords_lon_h);
-            $("#lat_min").val(gpx.coords_lat_min);
-            $("#lon_min").val(gpx.coords_lon_min);
-            $("#name").val(gpx.name);
-            tinyMCE.activeEditor.setContent(gpx.desc);
-            $("#desc").val(gpx.desc);
-            $("#hiddenDatePicker").val(CacheHidedate);
-            checkRegion();
+        var CacheHidedate = gpx.time.substring(0, 10);
+        $("#lat_h").val(gpx.coords_lat_h);
+        $("#lon_h").val(gpx.coords_lon_h);
+        $("#lat_min").val(gpx.coords_lat_min);
+        $("#lon_min").val(gpx.coords_lon_min);
+        $("#name").val(gpx.name);
+        tinyMCE.activeEditor.setContent(gpx.desc);
+        $("#desc").val(gpx.desc);
+        $("#hiddenDatePicker").val(CacheHidedate);
+        checkRegion();
     }
 
     function chkregion() {
-    if ($('#region').val() == "0") {
-    alert("Proszę wybrać region");
-            return false;
-    }
-    return true;
+        if ($('#region').val() == "0") {
+          alert('<?=tr('newcache_pleaseSelectRegion')?>');
+          return false;
+        }
+        return true;
     }
 
+    function updateRegionsList(regionToSelect) {
 
-    function chkcountry2(){
-    $('#region1').hide();
-            $('#regionAjaxLoader').show();
-            request = $.ajax({
-            url: "ajaxGetRegionsByCountryCode.php",
-                    type: "post",
-                    data:{countryCode: $('#country').val(), selectedRegion: '{sel_region}' },
-            });
-            // callback handler that will be called on success
-            request.done(function (response, textStatus, jqXHR){
-            $('#region1').html(response);
-                    //console.log(response);
-            });
-            request.always(function () {
+      if (typeof(regionToSelect)==='undefined') {
+        regionToSelect = null;
+      }
+
+        $('#region1').hide();
+        $('#regionAjaxLoader').show();
+
+        request = $.ajax({
+            url: "/Location/getRegionsByCountryCodeAjax/"+$('#country').val(),
+            type: "get",
+        });
+
+        // callback handler that will be called on success
+        request.done(function (response, textStatus, jqXHR){
+            var select = $('#region1');
+            select.empty();
+            if(response.regions.length == 0){
+              select.append('<option value="-1" selected="selected">- ? -</option>');
+              select.prop('disabled', 'disabled'); // disabled select is not submited!
+              $('#hiddenRegion').removeAttr('disabled');
+            } else {
+                $('#hiddenRegion').prop('disabled', 'disabled');
+                select.removeAttr('disabled');
+                select.append('<option value="0" selected="selected"><?=tr('search01')?></option>');
+                response.regions.forEach(function(element) {
+                  if ( element.code == '{sel_region}') {
+                    select.append('<option selected="selected" value="'+element.code+'">'+element.name+'</option>')
+                  } else {
+                    select.append('<option value="'+element.code+'">'+element.name+'</option>')
+                  }
+                });
+            }
+        });
+
+        request.always(function () {
             $('#regionAjaxLoader').hide();
-                    $('#region1').fadeIn(1000);
+                $('#region1').fadeIn(1000);
+
+                if(regionToSelect) {
+                  $('#region1').val( regionToSelect );
+                }
             });
     }
 
-    function _chkVirtual ()
-    {
-    chkiconcache();
-            // disable password for traditional cache
-            if ($('#cacheType').val() == "2")
-    {
-    $('#log_pw').attr('disabled', true);
-    }
-    else
-    {
-    $('#log_pw').removeAttr('disabled');
+    function _chkVirtual () {
+      chkiconcache();
+      // disable password for traditional cache
+      if ($('#cacheType').val() == "2") {
+        $('#log_pw').attr('disabled', true);
+      } else {
+        $('#log_pw').removeAttr('disabled');
+      }
+
+      if ($('#cacheType').val() == "4" || $('#cacheType').val() == "5" || $('#cacheType').val() == "6") {
+        // if( document.newcacheform.size.options[ $('#size option').length - 1].value != "7" && document.newcacheform.size.options[document.newcacheform.size.options.length - 2].value != "7")
+        if (!($("#size option[value='7']").length > 0)) {
+          var o = new Option("{{cacheSize_none}}", "7");
+          $(o).html("{{cacheSize_none}}");
+          $("#size").append(o);
+        }
+
+        $('#size').val(7);
+        $('#size').attr('disabled', true);
+      } else {
+        $('#size').attr('disabled', false);
+        $("#size option[value='7']").remove();
+      }
+
+      return false;
     }
 
-    if ($('#cacheType').val() == "4" || $('#cacheType').val() == "5" || $('#cacheType').val() == "6")
-    {
-
-    // if( document.newcacheform.size.options[ $('#size option').length - 1].value != "7" && document.newcacheform.size.options[document.newcacheform.size.options.length - 2].value != "7")
-    if (!($("#size option[value='7']").length > 0))
-    {
-    var o = new Option("{{cacheSize_none}}", "7");
-            $(o).html("{{cacheSize_none}}");
-            $("#size").append(o);
-    }
-    $('#size').val(7);
-            $('#size').attr('disabled', true);
-    }
-    else
-    {
-    $('#size').attr('disabled', false);
-            $("#size option[value='7']").remove();
-    }
-    return false;
-    }
-
-    function rebuildCacheAttr()
-    {
-    var i = 0;
-            var sAttr = '';
-            for (i = 0; i < maAttributes.length; i++)
-    {
-    if (maAttributes[i][1] == 1)
-    {
-    if (sAttr != '') sAttr += ';';
-            sAttr = sAttr + maAttributes[i][0];
-            document.getElementById('attr' + maAttributes[i][0]).src = maAttributes[i][3];
-    }
-    else
+    function rebuildCacheAttr() {
+      var i = 0;
+      var sAttr = '';
+      for (i = 0; i < maAttributes.length; i++) {
+        if (maAttributes[i][1] == 1) {
+          if (sAttr != '') sAttr += ';';
+          sAttr = sAttr + maAttributes[i][0];
+          document.getElementById('attr' + maAttributes[i][0]).src = maAttributes[i][3];
+        } else {
             document.getElementById('attr' + maAttributes[i][0]).src = maAttributes[i][2];
-            document.getElementById('cache_attribs').value = sAttr;
-    }
-    }
-
-    function chkcountry()
-    {
-
-    if (document.newcacheform.country.value != 'PL')
-    {
-    document.forms['newcacheform'].country.value = document.newcacheform.country.value;
-            $('#region0').hide();
-            $('#region1').hide();
-            $('#region2').hide();
-            $('#region3').hide();
-            $('#region1').val(0);
-            document.forms['newcacheform'].region.value = '0';
-            document.newcacheform.region.disable = true;
-    } else {
-    $('#region0').show();
-            $('#region1').show();
-            $('#region2').show();
-            $('#region3').show();
-            document.forms['newcacheform'].country.value = 'PL';
-//document.newcacheform.region.options[document.newcacheform.region.options.length] = new Option('--- Select name of region ---', '0')
-            document.newcacheform.region.disable = false;
-            document.forms['newcacheform'].region.value = document.newcacheform.region.value; }
+        }
+        document.getElementById('cache_attribs').value = sAttr;
+      }
     }
 
-    function chkiconcache()
-    {
-    var mode = $('#cacheType').val(); // document.newcacheform.type.value;
-            var iconarray = new Array();
-            iconarray['-1'] = 'arrow_left.png';
-            iconarray['1'] = 'unknown.png';
-            iconarray['2'] = 'traditional.png';
-            iconarray['3'] = 'multi.png';
-            iconarray['4'] = 'virtual.png';
-            iconarray['5'] = 'webcam.png';
-            iconarray['6'] = 'event.png';
-            iconarray['7'] = 'quiz.png';
-            iconarray['8'] = 'moving.png';
-            iconarray['10'] = 'owncache.png';
-            var image_cache = "/images/cache/" + iconarray[mode];
-            $('#actionicons').attr('src', image_cache);
+    function chkcountry() {
+      if (document.newcacheform.country.value != 'PL') {
+        document.forms['newcacheform'].country.value = document.newcacheform.country.value;
+        $('#region0').hide();
+        $('#region1').hide();
+        $('#region2').hide();
+        $('#region3').hide();
+        $('#region1').val(0);
+        document.forms['newcacheform'].region.value = '0';
+        document.newcacheform.region.disable = true;
+      } else {
+        $('#region0').show();
+        $('#region1').show();
+        $('#region2').show();
+        $('#region3').show();
+        document.forms['newcacheform'].country.value = 'PL';
+        //document.newcacheform.region.options[document.newcacheform.region.options.length] = new Option('--- Select name of region ---', '0')
+        document.newcacheform.region.disable = false;
+        document.forms['newcacheform'].region.value = document.newcacheform.region.value;
+      }
     }
 
-    function toggleAttr(id)
-    { // same func in newcache.tpl.php and editcache.tpl.php
-    var i = 0;
-//            var answ = ''; var bike_id = ''; var walk_id = ''; var boat_id = '';
-//            if (id == 85 || id == 84 || id == 86)
-//    { //toggle contradictory attribs
-//    for (i = 0; i < maAttributes.length; i++) //finding id of bike and walk_only attributes
-//    {
-//    if (maAttributes[i][0] == 84)  {walk_id = i; };
-//            if (maAttributes[i][0] == 85)  {bike_id = i; };
-//            if (maAttributes[i][0] == 86)  {boat_id = i; };
-//            if ((bike_id != '') && (walk_id != '') && (boat_id != '')) {break; };
-//    };
-//            if ((id == 84) && (maAttributes[walk_id][1] == 0) && ((maAttributes[bike_id][1] == 1) || (maAttributes[boat_id][1] == 1))) {
-//    //request confirmation if bike or boat is set and attemting to set Walk_only
-//    answ = confirm('{{ec_bike_set_msg}}');
-//            if (answ == false) { return false; };
-//            maAttributes[bike_id][1] = 0;
-//            maAttributes[boat_id][1] = 0;
-//    };
-//            if ((id == 85) && (maAttributes[bike_id][1] == 0) && ((maAttributes[walk_id][1] == 1) || (maAttributes[boat_id][1] == 1))) {
-//    //request confirmation if Walk or boat_only is set and attemting to set Bike
-//    answ = confirm('{{ec_walk_set_msg}}');
-//            if (answ == false) { return false; };
-//            maAttributes[walk_id][1] = 0;
-//            maAttributes[boat_id][1] = 0;
-//    };
-//            if ((id == 86) && (maAttributes[boat_id][1] == 0) && ((maAttributes[walk_id][1] == 1) || (maAttributes[bike_id][1] == 1))) {
-//    //request confirmation if bike or boat_only is set and attemting to set Boat
-//    answ = confirm('{{ec_boat_set_msg}}');
-//            if (answ == false) { return false; };
-//            maAttributes[bike_id][1] = 0;
-//            maAttributes[walk_id][1] = 0;
-//    };
-//            //alert(id);
-//    };
-            for (i = 0; i < maAttributes.length; i++)
-    {
-    if (maAttributes[i][0] == id)
-    {
+    function chkiconcache() {
+        var mode = $('#cacheType').val(); // document.newcacheform.type.value;
+        var iconarray = new Array();
+        iconarray['-1'] = 'arrow_left.png';
+        iconarray['1'] = 'unknown.png';
+        iconarray['2'] = 'traditional.png';
+        iconarray['3'] = 'multi.png';
+        iconarray['4'] = 'virtual.png';
+        iconarray['5'] = 'webcam.png';
+        iconarray['6'] = 'event.png';
+        iconarray['7'] = 'quiz.png';
+        iconarray['8'] = 'moving.png';
+        iconarray['10'] = 'owncache.png';
+        var image_cache = "/images/cache/" + iconarray[mode];
+        $('#actionicons').attr('src', image_cache);
+    }
 
-    if (maAttributes[i][1] == 0)
-            maAttributes[i][1] = 1;
-            else
-            maAttributes[i][1] = 0;
+    function toggleAttr(id) { // same func in newcache.tpl.php and editcache.tpl.php
+      var i = 0;
+        //            var answ = ''; var bike_id = ''; var walk_id = ''; var boat_id = '';
+        //            if (id == 85 || id == 84 || id == 86)
+        //    { //toggle contradictory attribs
+        //    for (i = 0; i < maAttributes.length; i++) //finding id of bike and walk_only attributes
+        //    {
+        //    if (maAttributes[i][0] == 84)  {walk_id = i; };
+        //            if (maAttributes[i][0] == 85)  {bike_id = i; };
+        //            if (maAttributes[i][0] == 86)  {boat_id = i; };
+        //            if ((bike_id != '') && (walk_id != '') && (boat_id != '')) {break; };
+        //    };
+        //            if ((id == 84) && (maAttributes[walk_id][1] == 0) && ((maAttributes[bike_id][1] == 1) || (maAttributes[boat_id][1] == 1))) {
+        //    //request confirmation if bike or boat is set and attemting to set Walk_only
+        //    answ = confirm('{{ec_bike_set_msg}}');
+        //            if (answ == false) { return false; };
+        //            maAttributes[bike_id][1] = 0;
+        //            maAttributes[boat_id][1] = 0;
+        //    };
+        //            if ((id == 85) && (maAttributes[bike_id][1] == 0) && ((maAttributes[walk_id][1] == 1) || (maAttributes[boat_id][1] == 1))) {
+        //    //request confirmation if Walk or boat_only is set and attemting to set Bike
+        //    answ = confirm('{{ec_walk_set_msg}}');
+        //            if (answ == false) { return false; };
+        //            maAttributes[walk_id][1] = 0;
+        //            maAttributes[boat_id][1] = 0;
+        //    };
+        //            if ((id == 86) && (maAttributes[boat_id][1] == 0) && ((maAttributes[walk_id][1] == 1) || (maAttributes[bike_id][1] == 1))) {
+        //    //request confirmation if bike or boat_only is set and attemting to set Boat
+        //    answ = confirm('{{ec_boat_set_msg}}');
+        //            if (answ == false) { return false; };
+        //            maAttributes[bike_id][1] = 0;
+        //            maAttributes[walk_id][1] = 0;
+        //    };
+        //            //alert(id);
+        //    };
+        for (i = 0; i < maAttributes.length; i++) {
+          if (maAttributes[i][0] == id) {
+            if (maAttributes[i][1] == 0) {
+                maAttributes[i][1] = 1;
+            } else {
+                maAttributes[i][1] = 0;
+            }
             rebuildCacheAttr();
             break;
-    }
-    }
+          }
+        }
     }
 
 
@@ -538,7 +559,7 @@ $(document).ready(function(){
         <tr class="form-group-sm">
             <td><p class="content-title-noshade">{{country_label}}:</p></td>
             <td>
-                <select name="country"  id="country" class="form-control input200" onchange="javascript:chkcountry2()">
+                <select name="country"  id="country" class="form-control input200" onchange="updateRegionsList()">
                     {countryoptions}
                 </select>
                 {show_all_countries_submit}
@@ -548,7 +569,7 @@ $(document).ready(function(){
         <tr class="form-group-sm">
             <td><p id="region0" class="content-title-noshade">{{regiononly}}:</p></td>
             <td>
-                <!-- <select name="region" id="region1" class="input200" onchange="javascript:chkcountry()" ></select> -->
+                <input type="hidden" name="region" disabled="disabled" id="hiddenRegion" value="-1" />
                 <select name="region" id="region1" class="form-control input200" >
                 </select>&nbsp;<button class="btn btn-default btn-sm" id="region3" onclick="extractregion()">{{region_from_coord}}</button>
                 <img id="regionAjaxLoader" style="display: none" src="images/misc/ptPreloader.gif" alt="">

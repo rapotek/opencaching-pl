@@ -7,6 +7,7 @@ use src\Models\GeoCache\Collection;
 use src\Models\GeoCache\GeoCache;
 use src\Models\BaseObject;
 use src\Models\User\User;
+use src\Utils\Debug\Debug;
 
 class PowerTrail extends BaseObject
 {
@@ -131,7 +132,7 @@ class PowerTrail extends BaseObject
                 case 'uuid': //uuid is not supportet yet
                     break;
                 default:
-                    error_log(__METHOD__ . ": Unknown column: $key");
+                    Debug::errorLog("Unknown column: $key");
             }
         }
 
@@ -145,14 +146,17 @@ class PowerTrail extends BaseObject
 
     }
 
-    public static function CheckForPowerTrailByCache($cacheId)
+    public static function CheckForPowerTrailByCache($cacheId, $includeHiddenGeoPath=false)
     {
         $queryPt = 'SELECT `id`, `name`, `image`, `type` FROM `PowerTrail`
                     WHERE `id` IN
-                        ( SELECT `PowerTrailId` FROM `powerTrail_caches` WHERE `cacheId` =:1 )
-                        AND `status` = 1 ';
-        $s = self::db()->multiVariableQuery($queryPt, $cacheId);
+                        ( SELECT `PowerTrailId` FROM `powerTrail_caches` WHERE `cacheId` =:1 )';
 
+        if(!$includeHiddenGeoPath){
+            $queryPt .= ' AND status = 1 ';
+        }
+
+        $s = self::db()->multiVariableQuery($queryPt, $cacheId);
         return self::db()->dbResultFetchAll($s);
     }
 
@@ -222,14 +226,14 @@ class PowerTrail extends BaseObject
     {
         if (!$this->geocaches->isReady()) {
 
-            $query = 'SELECT powerTrail_caches.isFinal, caches . * , user.username
-                      FROM  `caches` , user, powerTrail_caches
-                      WHERE cache_id IN (
-                            SELECT  `cacheId` FROM  `powerTrail_caches`
-                            WHERE  `PowerTrailId` =:1)
-                        AND user.user_id = caches.user_id
-                        AND powerTrail_caches.cacheId = caches.cache_id
-                      ORDER BY caches.name';
+            $query = 'SELECT pc.isFinal, c.*, u.username
+                      FROM  powerTrail_caches AS pc
+                        JOIN caches AS c ON c.cache_id = pc.cacheId
+                        JOIN user AS u ON u.user_id = c.user_id
+                      WHERE pc.PowerTrailId = :1
+                      ORDER BY c.name';
+
+
             $s = $this->db->multiVariableQuery($query, $this->id);
             $geoCachesDbResult = $this->db->dbResultFetchAll($s);
 

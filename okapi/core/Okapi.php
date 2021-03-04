@@ -23,8 +23,8 @@ class Okapi
     public static $server;
 
     /* These two get replaced in automatically deployed packages. */
-    private static $version_number = 1910;
-    private static $git_revision = 'af934a9d40c35ff6a727c635650a43839cd0f886';
+    private static $version_number = 1931;
+    private static $git_revision = '79a65dd42557ff74b58c35a4db6a97946a6020f2';
 
     private static $okapi_vars = null;
 

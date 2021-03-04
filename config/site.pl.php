@@ -1,12 +1,10 @@
 <?php
-/**
- * Configuration of general site properties of OCPL
- */
 
 /**
- * Primary countries for this node.
+ * General site properties configuration
+ *
+ * Those are configuration overrides for OCPL node only.
  */
-$site['primaryCountries'] = ['PL'];
 
 /**
  * Site name for the node
@@ -25,6 +23,18 @@ $site['pageTitle'] = 'Geocaching Opencaching Polska';
 $site['ocNodeId'] = 2;
 
 /**
- * Site main domain - this shoudl be only main part of domain eg. opencaching.pl for OCPL
+ * Site main domain - this should be only main part of domain eg. opencaching.pl for OCPL
  */
 $site['mainDomain'] = 'opencaching.pl';
+
+/**
+ * Primary countries for this node.
+ */
+$site['primaryCountries'] = ['PL'];
+
+/**
+ * List of default countries used to present on countries list (for example in search).
+ * List will be presented in same order as below.
+ * Use only two-letters codes UPPERCASE.
+ */
+$site['defaultCountriesList'] = ['PL', 'BY', 'CZ', 'DE', 'DK', 'LT', 'NL', 'RO', 'SE', 'SK', 'GB', 'UA', 'HU'];

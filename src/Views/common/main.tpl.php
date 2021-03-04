@@ -2,8 +2,7 @@
 
 use src\Utils\Debug\Debug;
 use src\Utils\Uri\SimpleRouter as SRouter;
-
-global $tpl_subtitle;
+use src\Models\OcConfig\OcConfig;
 
 ?>
 <!DOCTYPE html>
@@ -11,14 +10,15 @@ global $tpl_subtitle;
 <head>
   <meta charset="utf-8">
 
-  <title><?=$tpl_subtitle?>{title}</title>
+  <title><?=$view->getSubtitle()?>{title}</title>
 
-  <link rel="shortcut icon" href="/images/<?=$config['headerFavicon']?>">
-  <link rel="apple-touch-icon" sizes="180x180" href="/images/icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/images/icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/images/icons/favicon-16x16.png">
-  <link rel="manifest" href="/images/icons/site.webmanifest">
-  <link rel="mask-icon" href="/images/icons/safari-pinned-tab.svg" color="#5bbad5">
+  <link rel="shortcut icon" href="<?=OcConfig::getSiteMainViewIcon('shortcutIcon')?>">
+  <link rel="apple-touch-icon" sizes="180x180" href="<?=OcConfig::getSiteMainViewIcon('appleTouch')?>">
+  <link rel="icon" type="image/png" sizes="32x32" href="<?=OcConfig::getSiteMainViewIcon('icon32')?>">
+  <link rel="icon" type="image/png" sizes="16x16" href="<?=OcConfig::getSiteMainViewIcon('icon16')?>">
+  <link rel="manifest" href="<?=OcConfig::getSiteMainViewIcon('webmanifest')?>">
+  <link rel="mask-icon" href="<?=OcConfig::getSiteMainViewIcon('maskIcon')?>" color="#5bbad5">
+
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="apple-mobile-web-app-title" content="Opencaching">
   <meta name="application-name" content="Opencaching">
@@ -32,9 +32,11 @@ global $tpl_subtitle;
   <link rel="stylesheet" type="text/css" href="/css/typography.css">
 
   <?php if ($view->_showVideoBanner) {
-    foreach($view->_topBannerVideo as $videoPath) { ?>
-      <link rel="prefetch" href="<?=$videoPath?>">
-    <?php }
+      foreach($view->_topBannerVideo as $key => $videoPath) {
+          if ($key !== 0) { ?>
+              <link rel="prefetch" href="<?= $videoPath ?>">
+          <?php }
+      }
   } ?>
 
   <?php foreach( $view->getLocalCss() as $css ) { ?>
@@ -51,23 +53,23 @@ global $tpl_subtitle;
   {cachemap_header}
 
   <?php
-      if( $view->isGoogleAnalyticsEnabled() ){
+      if ($view->isGoogleAnalyticsEnabled()) {
           $view->callChunkOnce( 'googleAnalytics', $view->getGoogleAnalyticsKey() );
       }
-      if( $view->isjQueryEnabled()){
+      if ($view->isjQueryEnabled()) {
           $view->callChunk('jQuery');
       }
-      if( $view->isjQueryUIEnabled()){
+      if ($view->isjQueryUIEnabled()) {
           $view->callChunk('jQueryUI');
       }
-      if( $view->isTimepickerEnabled()){
+      if ($view->isTimepickerEnabled()) {
           $view->callChunk('timepicker');
       }
-      if( $view->isFancyBoxEnabled()){
+      if ($view->isFancyBoxEnabled()) {
           $view->callChunk('fancyBoxLoader', true, false);
       }
 
-      foreach( $view->getLocalJs() as $js ) {
+      foreach ($view->getLocalJs() as $js) {
           if (! $js['defer']) {?>
             <script src="<?=$js['url']?>"<?=$js['async'] ? ' async' : ''?>></script>
   <?php   }
@@ -169,29 +171,28 @@ global $tpl_subtitle;
         </div>
 
         <script>
-        var videoSource = new Array();
-        <?php foreach($view->_topBannerVideo as $key => $val) { ?>
-          videoSource[<?=$key?>]='<?=$val?>';
-        <?php } // foreach topBannerVideo ?>
-        var videoCount = videoSource.length;
-        var i = 0;
-
-       document.getElementById("topline-video-player").setAttribute("src",videoSource[0]);
+            let topVideoSource = [];
+            <?php foreach($view->_topBannerVideo as $key => $val) { ?>
+                topVideoSource[<?=$key?>]='<?=$val?>';
+            <?php } // foreach topBannerVideo ?>
+            let topVideoIndex = 0;
+            let topVideoPlayer = document.getElementById("topline-video-player");
+            topVideoPlayer.setAttribute("src",topVideoSource[0]);
 
        function videoPlay(videoNum) {
-         document.getElementById("topline-video-player").setAttribute("src", videoSource[videoNum]);
-         document.getElementById("topline-video-player").load();
-         document.getElementById("topline-video-player").play();
+           topVideoPlayer.setAttribute("src", topVideoSource[videoNum]);
+           topVideoPlayer.load();
+           topVideoPlayer.play();
        }
 
-       document.getElementById('topline-video-player').addEventListener('ended', toplineVideoHandler, false);
+       topVideoPlayer.addEventListener('ended', toplineVideoHandler, false);
 
        function toplineVideoHandler() {
-         i++;
-         if (i == (videoCount)) {
-           i = 0;
+         topVideoIndex++;
+         if (topVideoIndex === topVideoSource.length) {
+           topVideoIndex = 0;
          }
-         videoPlay(i);
+         videoPlay(topVideoIndex);
        }
 
         $('.top-video-slider').slick({
@@ -201,7 +202,6 @@ global $tpl_subtitle;
           autoplaySpeed: 5000,
           arrows: false,
         });
-
         </script>
       <?php } // if - showVideoBanner?>
 
@@ -348,21 +348,25 @@ global $tpl_subtitle;
                     <img class="img-navflag" src="<?=$langFlag['img']?>"
                          alt="<?=$langFlag['name']?> version" title="<?=$langFlag['name']?> version">
                   </a>
-                <?php } //forach-lang-flags ?>
+                <?php } //foreach-lang-flags ?>
               </span>
           <?php } //$view->_crowdinInContextEnabled ?>
 
-          <?php if ($view->_crowdinInContextAllowed) { ?>
-          <span>
-            <a href="<?=$view->_crowdinInContextActionUrl?>">
-                <?php if ($view->_crowdinInContextEnabled) { ?>
+          <?php if ($view->_crowdinInContextEnabled) { ?>
+              <span>
+                <a href="<?=$view->_crowdinInContextActionUrl?>">
                   <?=tr('common_disableCrowdinInContext')?>
-                <?php } else { // if-_crowdinInContextEnabled ?>
-                  <?=tr('common_enableCrowdinInContext')?>
-                <?php } //if-_crowdinInContextEnabled ?>
-            </a>
-          </span>
-          <?php } //if-$view->_crowdinInContextAllowed ?>
+                </a>
+              </span>
+          <?php } else { //if-_crowdinInContextEnabled ?>
+              <?php if ($view->_crowdinInContextAllowed) { ?>
+                  <span>
+                      <a href="<?=$view->_crowdinInContextActionUrl?>">
+                          <?=tr('common_enableCrowdinInContext')?>
+                      </a>
+                  </span>
+              <?php } // $v->_crowdinInContextAllowed ?>
+          <?php } // $v->_crowdinInContextEnabled ?>
         </div>
 
       </div>
@@ -399,6 +403,6 @@ global $tpl_subtitle;
             <script src="<?=$js['url']?>"<?=$js['async'] ? ' async' : ''?> defer></script>
   <?php   } //if
       } //foreach-js ?>
-  <!-- (C) The Opencaching Project 2019 -->
+  <!-- (C) The Opencaching Project 2020 -->
 </body>
 </html>
