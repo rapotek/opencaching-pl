@@ -403,15 +403,24 @@ class GeoCacheLog extends GeoCacheLogCommons
     /**
      * @throws Exception
      */
-    private function loadByLogId(int $logId)
+    private function loadByLogIdOrUuid(int $logId = null, string $logUuid = null)
     {
-        //find log by Id
-        $s = $this->db->multiVariableQuery(
-            'SELECT * FROM cache_logs WHERE id = :1 LIMIT 1',
-            $logId
-        );
+        if ($logId !== null) {
+            //find log by Id
+            $s = $this->db->multiVariableQuery(
+                'SELECT * FROM cache_logs WHERE id = :1 LIMIT 1',
+                $logId
+            );
+        } elseif ($logUuid != null) {
+            $s = $this->db->multiVariableQuery(
+                'SELECT * FROM cache_logs WHERE uuid = :1 LIMIT 1',
+                $logUuid
+            );
+        }
 
-        $logDbRow = $this->db->dbResultFetchOneRowOnly($s);
+        if (! empty($s)) {
+            $logDbRow = $this->db->dbResultFetchOneRowOnly($s);
+        }
 
         if (is_array($logDbRow)) {
             $this->loadFromDbRow($logDbRow);
@@ -458,7 +467,23 @@ class GeoCacheLog extends GeoCacheLogCommons
         $obj = new self();
 
         try {
-            $obj->loadByLogId($logId);
+            $obj->loadByLogIdOrUuid($logId);
+
+            return $obj;
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Create GeoCacheLog object based on logUuid
+     */
+    public static function fromLogUuidFactory(string $logUuid): ?GeoCacheLog
+    {
+        $obj = new self();
+
+        try {
+            $obj->loadByLogIdOrUuid(null, $logUuid);
 
             return $obj;
         } catch (Exception $e) {
@@ -704,5 +729,35 @@ class GeoCacheLog extends GeoCacheLogCommons
             'UPDATE cache_logs SET last_modified = NOW() WHERE id = :1 LIMIT 1',
             $logId
         );
+    }
+
+    /**
+     * Only attributes containing primitives or not database-call dependant
+     * objects are serialized.
+     */
+    public function __serialize(): array
+    {
+        return [
+            'id' => $this->id,
+            'geoCacheId' => $this->geoCacheId,
+            'userId' => $this->userId,
+            'type' => $this->type,
+            'date' => $this->date,
+            'text' => $this->text,
+            'textHtml' => $this->textHtml,
+            'lastModified' => $this->lastModified,
+            'okapiSyncbase' => $this->okapiSyncbase,
+            'uuid' => $this->uuid,
+            'picturesCount' => $this->picturesCount,
+            'mp3count' => $this->mp3count,
+            'dateCreated' => $this->dateCreated,
+            'ownerNotified' => $this->ownerNotified,
+            'node' => $this->node,
+            'deleted' => $this->deleted,
+            'delByUserId' => $this->delByUserId,
+            'lastDeleted' => $this->lastDeleted,
+            'editByUserId' => $this->editByUserId,
+            'editCount' => $this->editCount,
+        ];
     }
 }

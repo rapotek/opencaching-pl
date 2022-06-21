@@ -1,26 +1,23 @@
 <?php
+
 namespace src\Utils\EventHandler;
 
-use src\Models\Notify\Notify;
-use src\Models\User\User;
 use src\Models\GeoCache\GeoCache;
+use src\Models\User\User;
+use src\Utils\Observer\OCNotifier;
 
 class EventHandler
 {
     public static function cacheNew(GeoCache $cache)
     {
-        User::deleteStatpic($cache->getOwnerId());
-        Notify::generateNotifiesForCache($cache);
+        OCNotifier::notify($cache, null, ['action' => 'new']);
     }
 
     public static function cacheEdit(GeoCache $cache)
     {
-        User::deleteStatpic($cache->getOwnerId());
-    }
-
-    public static function logNewByUserId($userId)
-    {
-        User::deleteStatpic($userId);
+        // here should be an unserialized cache before update as a second
+        // parameter but it is null now to avoid editcache.php refactoring
+        OCNotifier::notify($cache, null, ['action' => 'edit']);
     }
 
     // Old

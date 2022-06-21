@@ -13,9 +13,9 @@ use src\Models\OcConfig\OcConfig;
 use src\Models\User\User;
 use src\Utils\Database\OcDb;
 use src\Utils\Database\XDb;
-use src\Utils\EventHandler\EventHandler;
 use src\Utils\Generators\Uuid;
 use src\Utils\I18n\I18n;
+use src\Utils\Observer\OCNotifier;
 use src\Utils\Text\InputFilter;
 
 // todo: create and set up 4 template selector with wybor_WE wybor_NS.
@@ -671,8 +671,19 @@ if (isset($_POST['submitform']) && ($all_ok == true)) {
         }
     }
 
-    //call eventhandler
-    EventHandler::logNewByUserId($user->getUserId());
+    $log = GeoCacheLog::fromLogUuidFactory($log_uuid);
+
+    if (! empty($log)) {
+        OCNotifier::notify($log, null, ['action' => 'new']);
+    }
+
+    if (! empty($init_log_uuid)) {
+        $log = GeoCacheLog::fromLogUuidFactory($init_log_uuid);
+
+        if (! empty($log)) {
+            OCNotifier::notify($log, null, ['action' => 'init_log']);
+        }
+    }
 
     $badgetParam = '';
 

@@ -14,6 +14,7 @@ final class OcConfig extends ConfigReader
     use SiteConfigTrait;
     use UserConfigTrait;
     use GeopathConfigTrait;
+    use ObserverConfigTrait;
 
     /*
         const OCNODE_GERMANY    = 1;  // Opencaching Germany http://www.opencaching.de OC
@@ -32,23 +33,39 @@ final class OcConfig extends ConfigReader
     // $config[''] etc...
 
     private $dbDatetimeFormat = 'Y-m-d H:i:s';
+
     private $datetimeFormat = 'Y-m-d H:i';
+
     private $absolute_server_URI = null;
+
     private $dynamicFilesPath;
+
     private $googleMapKey;
+
     private $siteInService = false;
+
     private $dateFormat;
+
     private $headerLogo;
+
     private $needFindLimit;
+
     private $needApproveLimit;
+
     private $minimumAge;
+
     private $meritBadgesEnabled;
 
     private $dbUser;
+
     private $dbPass;
+
     private $dbAdminUser;
+
     private $dbAdminPass;
+
     private $dbHost;
+
     private $dbName;
 
     /**
@@ -108,6 +125,14 @@ final class OcConfig extends ConfigReader
     private $cronjobsConfig;
 
     /**
+     * Private constructor so nobody else can instantiate it.
+     */
+    protected function __construct()
+    {
+        $this->loadConfig();
+    }
+
+    /**
      * Get the singleton.
      */
     public static function instance(): self
@@ -119,14 +144,6 @@ final class OcConfig extends ConfigReader
         }
 
         return $inst;
-    }
-
-    /**
-     * Private constructor so nobody else can instantiate it.
-     */
-    protected function __construct()
-    {
-        $this->loadConfig();
     }
 
     private function loadConfig()
@@ -322,9 +339,11 @@ final class OcConfig extends ConfigReader
     public static function getNewsConfig(string $key)
     {
         $instance = self::instance();
-        if (!$instance->newsConfig) {
+
+        if (! $instance->newsConfig) {
             $instance->newsConfig = self::getConfig('news', 'news');
         }
+
         return $instance->newsConfig[$key] ?? null;
     }
 
@@ -355,5 +374,4 @@ final class OcConfig extends ConfigReader
 
         return $this->topBannerVideo;
     }
-
 }

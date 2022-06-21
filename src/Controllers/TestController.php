@@ -27,6 +27,7 @@ use src\Models\Voting\Election;
 use src\Utils\Database\OcDb;
 use src\Utils\DateTime\OcDateTime;
 use src\Utils\FileSystem\FileUploadMgr;
+use src\Utils\Notifier\OCNotifier;
 use src\Utils\Text\Formatter;
 use src\Utils\Text\UserInputFilter;
 use src\Utils\Uri\HttpCode;
@@ -634,5 +635,27 @@ class TestController extends BaseController
             }
         }
         echo "- {$votersCount} voters generated<br>";
+    }
+
+    public function notifyTest()
+    {
+        $notifier = OCNotifier::getInstance();
+        $currentCache = GeoCache::fromCacheIdFactory(51234);
+        $serializedCache = serialize($currentCache);
+        $currentCache->updateStatus($currentCache->getStatus()/* == 1 ? 2: 1*/);
+        $originalCache = unserialize($serializedCache);
+        $notifier->notifyGeoCache($currentCache, $originalCache);
+
+        /*foreach ($arr as $observer => $options) {
+            if (is_int($observer) && is_string($options)) {
+                $observer = $options;
+                unset($options);
+            }
+            print("========<br>\n");
+            print_r($observer);
+            print("<br>\n--------<br>\n");
+            print_r($options ?? "--brak--");
+            print("<br>\n========<br>\n");
+        }*/
     }
 }

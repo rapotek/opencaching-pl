@@ -417,7 +417,6 @@ class GeoCache extends GeoCacheCommons
         $this->notesCount = (int) $geocacheDbRow['notes'];
         $this->wayLength = $geocacheDbRow['way_length'];
         $this->searchTime = $geocacheDbRow['search_time'];
-        $this->searchTime = $geocacheDbRow['search_time'];
         $this->watchingUsersCount = (int) $geocacheDbRow['watcher'];
         $this->descLanguagesList = $geocacheDbRow['desc_languages'];
         $this->mp3count = (int) $geocacheDbRow['mp3count'];
@@ -1895,5 +1894,49 @@ class GeoCache extends GeoCacheCommons
     public function isOwnedBy(User $user): bool
     {
         return $user->getUserId() == $this->getOwnerId();
+    }
+
+    /**
+     * Only attributes containing primitives or not database-call dependant
+     * objects are serialized.
+     */
+    public function __serialize(): array
+    {
+        return [
+            'id' => $this->id,
+            'geocacheWaypointId' => $this->geocacheWaypointId,
+            'otherWaypointIds' => $this->otherWaypointIds,
+            'cacheName' => $this->cacheName,
+            'cacheType' => $this->cacheType,
+            'datePlaced' => $this->datePlaced,
+            'dateCreated' => $this->dateCreated,
+            'dateActivate' => $this->dateActivate,
+            'datePublished' => $this->datePublished,
+            'sizeId' => $this->sizeId,
+            'ratingId' => $this->ratingId,
+            'status' => $this->status,
+            'country' => $this->country,
+            'searchTime' => $this->searchTime,
+            'recommendations' => $this->recommendations,
+            'founds' => $this->founds,
+            'notFounds' => $this->notFounds,
+            'notesCount' => $this->notesCount,
+            'lastFound' => $this->lastFound,
+            'score' => $this->score,
+            'ratingVotes' => $this->ratingVotes,
+            'willAttends' => $this->willAttends,
+            'wayLength' => $this->wayLength,
+            'difficulty' => $this->difficulty,
+            'terrain' => $this->terrain,
+            'logPassword' => $this->logPassword,
+            'watchingUsersCount' => $this->watchingUsersCount,
+            'descLanguagesList' => $this->descLanguagesList,
+            'mp3count' => $this->mp3count,
+            'picturesCount' => $this->picturesCount,
+            'uuid' => $this->uuid,
+            'ownerId' => $this->ownerId,
+            'founderId' => $this->founderId,
+            'coordinates' => $this->coordinates,
+        ];
     }
 }
