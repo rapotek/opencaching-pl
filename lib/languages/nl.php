@@ -2035,8 +2035,10 @@ $translations = [
     'ec_delete_wp' => 'Moet dit waypoint werkelijk verwijderd worden?',
     'mc_edit_geocache' => 'Cache bewerken',
     'mc_by_founds' => 'Per gevonden',
+    'mc_by_not_founds' => 'Op DNFs',
     'mc_by_reco' => 'Per aanbevelingen',
     'mc_by_gk' => 'Per GeoKrets',
+    'mc_by_watchers' => 'Op volgers',
     'mc_by_visits' => 'Per bekeken',
     'ec_bike_set_msg' => 'Cache attribute [Bike] or [Boat] has been set. Are you sure to set [Access only by walk] attribute?***',
     'ec_walk_set_msg' => 'Cache attribute [Access only by walk] or [Boat] has been set. Are you sure to set [Bike] attribute?***',
@@ -3214,4 +3216,11 @@ $translations = [
     'at_day' => 'Niet aanbevolen in het donker',
     'at_notinwinter' => 'Niet beschikbaar in de winter',
     'at_allseasons' => 'Alle seizoenen beschikbaar',
+
+    'cache_approval_refresh' => 'Lijst vernieuwen',
+    'cache_approval_refresh_time' => 'Laatst bijgewerkt',
+    'cache_approval_nonamed' => 'geen naam',
+    'cache_approval_no_caches' => 'Er zijn geen caches te keuren',
+    'cache_approval_changed_time' => 'status veranderd',
+    'cache_approval_cache_invalid' => 'Cache "%s" is niet beschikbaar om te keuren',
 ];

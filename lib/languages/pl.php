@@ -2035,8 +2035,10 @@ $translations = [
     'ec_delete_wp' => 'Czy usunąć ten waypoint?',
     'mc_edit_geocache' => 'Edytuj skrzynkę',
     'mc_by_founds' => 'Po liczbie znalezionych',
+    'mc_by_not_founds' => 'Po liczbie nieznalezionych',
     'mc_by_reco' => 'Po liczbie rekomendacji',
     'mc_by_gk' => 'Po liczbie geoKretów w skrzynce',
+    'mc_by_watchers' => 'Po liczbie obserwujących',
     'mc_by_visits' => 'Po liczbie odwiedzających',
     'ec_bike_set_msg' => 'Atrybut skrzynki [Dostępna rowerem] lub [Dostępna tylko łodzią] jest ustawiony. Czy na pewno chcesz dodać atrybut [Dostępna tylko pieszo]?',
     'ec_walk_set_msg' => 'Atrybut skrzynki [Dostępna tylko pieszo] lub [Dostępna tylko łodzią] jest ustawiony. Czy na pewno chcesz dodać atrybut [Dostępna rowerem]?',
@@ -3214,4 +3216,11 @@ $translations = [
     'at_day' => 'Nie zaleca się szukania w nocy',
     'at_notinwinter' => 'Niedostępna zimą',
     'at_allseasons' => 'Dostępne przez cały rok',
+
+    'cache_approval_refresh' => 'Odśwież listę',
+    'cache_approval_refresh_time' => 'Ostatnia aktualizacja',
+    'cache_approval_nonamed' => 'bez nazwy',
+    'cache_approval_no_caches' => 'Brak skrzynek oczekujących na akceptację',
+    'cache_approval_changed_time' => 'status zmieniony',
+    'cache_approval_cache_invalid' => 'Skrzynka "%s" nie podlega operacjom dotyczącym akceptacji',
 ];

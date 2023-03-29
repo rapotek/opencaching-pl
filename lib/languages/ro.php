@@ -2035,8 +2035,10 @@ $translations = [
     'ec_delete_wp' => 'Eşti sigur că vrei să ştergi acest punct?',
     'mc_edit_geocache' => 'Modifică geocutie',
     'mc_by_founds' => 'După găsiri',
+    'mc_by_not_founds' => 'By DNFs',
     'mc_by_reco' => 'După recomandări',
     'mc_by_gk' => 'După GeoKrety din cutie',
+    'mc_by_watchers' => 'By watchers',
     'mc_by_visits' => 'După vizitatori',
     'ec_bike_set_msg' => 'Cache attribute [Bike] or [Boat] has been set. Did you mean to set the [Access only by walk] attribute?',
     'ec_walk_set_msg' => 'Cache attribute [Access only by walk] or [Boat] has been set. Did you mean to set the [Bike] attribute?',
@@ -3214,4 +3216,11 @@ $translations = [
     'at_day' => 'NOT recommended at night',
     'at_notinwinter' => 'NOT available during winter',
     'at_allseasons' => 'Available all seasons',
+
+    'cache_approval_refresh' => 'Refresh list',
+    'cache_approval_refresh_time' => 'Last update',
+    'cache_approval_nonamed' => 'no name',
+    'cache_approval_no_caches' => 'No geocaches waiting to be accepted',
+    'cache_approval_changed_time' => 'status changed',
+    'cache_approval_cache_invalid' => 'Cache "%s" is not valid for approval actions',
 ];

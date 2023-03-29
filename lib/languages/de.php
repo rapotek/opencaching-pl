@@ -2035,8 +2035,10 @@ $translations = [
     'ec_delete_wp' => 'Wegpunkt löschen?',
     'mc_edit_geocache' => 'Cache bearbeiten',
     'mc_by_founds' => 'nach Funden',
+    'mc_by_not_founds' => 'By DNFs',
     'mc_by_reco' => 'nach Empfehlungen',
     'mc_by_gk' => 'nach enthaltenen Geokrets',
+    'mc_by_watchers' => 'By watchers',
     'mc_by_visits' => 'nach Besuchern',
     'ec_bike_set_msg' => 'Der Cache hat bereits das Attribut [Fahrrad] oder [Boot]. Bist du sicher, dass du [Nur zu Fuß erreichbar] hinzufügen möchtest?',
     'ec_walk_set_msg' => 'Der Cache hat bereits das Attribut [Nur zu Fuß erreichbar] oder [Boot]. Bist du sicher, dass du [Fahrrad] hinzufügen möchtest?',
@@ -3215,4 +3217,11 @@ Verwaltet die Opencaching-Website, kümmert sich um das Wiki, prüft neue Caches
     'at_day' => 'Nachts nicht empfohlen',
     'at_notinwinter' => 'im Winter nicht zugänglich',
     'at_allseasons' => 'Ganztägig verfügbar',
+
+    'cache_approval_refresh' => 'Refresh list',
+    'cache_approval_refresh_time' => 'Last update',
+    'cache_approval_nonamed' => 'no name',
+    'cache_approval_no_caches' => 'No geocaches waiting to be accepted',
+    'cache_approval_changed_time' => 'status changed',
+    'cache_approval_cache_invalid' => 'Cache "%s" is not valid for approval actions',
 ];

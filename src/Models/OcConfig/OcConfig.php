@@ -32,97 +32,65 @@ final class OcConfig extends ConfigReader
     // old-style values - values from new-style config should be accessed through
     // $config[''] etc...
 
-    private $dbDatetimeFormat = 'Y-m-d H:i:s';
+    private string $dbDatetimeFormat = 'Y-m-d H:i:s';
 
-    private $datetimeFormat = 'Y-m-d H:i';
+    private string $datetimeFormat = 'Y-m-d H:i';
 
-    private $absolute_server_URI = null;
+    private ?string $absolute_server_URI = null;
 
-    private $dynamicFilesPath;
+    private string $dynamicFilesPath;
 
-    private $googleMapKey;
+    private string $googleMapKey;
 
-    private $siteInService = false;
+    private ?string $mapQuestKey;
 
-    private $dateFormat;
+    private string $dateFormat;
 
-    private $headerLogo;
+    private string $headerLogo;
 
-    private $needFindLimit;
+    private int $needFindLimit;
 
-    private $needApproveLimit;
+    private int $needApproveLimit;
 
-    private $minimumAge;
+    private int $minimumAge;
 
-    private $meritBadgesEnabled;
+    private bool $meritBadgesEnabled;
 
-    private $dbUser;
+    private string $dbUser;
 
-    private $dbPass;
+    private string $dbPass;
 
-    private $dbAdminUser;
+    private string $dbAdminUser;
 
-    private $dbAdminPass;
+    private string $dbAdminPass;
 
-    private $dbHost;
+    private string $dbHost;
 
-    private $dbName;
+    private string $dbName;
 
-    /**
-     * Configuration for src\Utils\Lock objects from /config/lock.* files.
-     *
-     * @var array
-     */
-    private $lockConfig;
+    /** Configuration for src\Utils\Lock objects from /config/lock.* files. */
+    private ?array $lockConfig = null;
 
-    /**
-     * Watchlist configuration from /config/watchlist.* files.
-     *
-     * @var array
-     */
-    private $watchlistConfig;
+    /** Watchlist configuration from /config/watchlist.* files. */
+    private ?array $watchlistConfig = null;
 
-    /**
-     * Cache log filter configuration from /config/logfilter.* files.
-     *
-     * @var array
-     */
-    private $logfilterConfig;
+    /** Cache log filter configuration from /config/logfilter.* files. */
+    private ?array $logFilterConfig = null;
 
-    /**
-     * News configuration from /config/news.* files.
-     *
-     * @var array
-     */
-    private $newsConfig;
+    /** News configuration from /config/news.* files. */
+    private ?array $newsConfig = null;
 
-    /**
-     * Guides configuration from /config/guides.* files.
-     *
-     * @var array
-     */
-    private $guidesConfig;
+    /** Guides configuration from /config/guides.* files. */
+    private ?array $guidesConfig = null;
 
-    /**
-     * Configuration from /config/banner.* files.
-     *
-     * @var array
-     */
-    private $topBannerVideo;
+    /** Configuration from /config/banner.* files. */
+    private ?array $topBannerVideo = null;
 
-    /**
-     * Configuration from /config/banner.* files.
-     *
-     * @var array
-     */
-    private $topBannerTxt;
+    /** Configuration from /config/banner.* files. */
+    private ?array $topBannerTxt = null;
 
-    /**
-     * Cronjob configuration from /config/cronjobs.* files.
-     *
-     * @var array
-     */
-    private $cronjobsConfig;
+    /** Cronjob configuration from /config/cronjobs.* files. */
+    private ?array $cronjobsConfig = null;
 
     /**
      * Private constructor so nobody else can instantiate it.
@@ -146,6 +114,9 @@ final class OcConfig extends ConfigReader
         return $inst;
     }
 
+    /**
+     * @noinspection PhpUndefinedVariableInspection
+     */
     private function loadConfig()
     {
         require self::LEGACY_LOCAL_CONFIG;
@@ -154,6 +125,7 @@ final class OcConfig extends ConfigReader
         $this->absolute_server_URI = $absolute_server_URI;
         $this->dynamicFilesPath = $dynbasepath;
         $this->googleMapKey = $googlemap_key;
+        $this->mapQuestKey = $config['maps']['mapQuestKey'];
         $this->dateFormat = $dateFormat;
         $this->headerLogo = $config['headerLogo'];
         $this->needApproveLimit = $NEED_APPROVE_LIMIT;
@@ -178,16 +150,16 @@ final class OcConfig extends ConfigReader
         }
 
         if (is_array($config['logfilter'] ?? null)) {
-            $this->logfilterConfig = $config['logfilter'];
+            $this->logFilterConfig = $config['logfilter'];
         }
     }
 
-    public function getDateFormat()
+    public function getDateFormat(): string
     {
         return $this->dateFormat;
     }
 
-    public function getDatetimeFormat()
+    public function getDatetimeFormat(): string
     {
         return $this->datetimeFormat;
     }
@@ -202,26 +174,36 @@ final class OcConfig extends ConfigReader
         return self::getWikiLinks()[$wikiLinkKey];
     }
 
-    public static function getAbsolute_server_URI()
+    public static function getAbsolute_server_URI(): string
     {
         return self::instance()->absolute_server_URI;
     }
 
-    public function getDbDateTimeFormat()
+    public function getDbDateTimeFormat(): string
     {
         return $this->dbDatetimeFormat;
     }
 
-    public static function getDynFilesPath($trimTrailingSlash = false)
+    public static function getDynFilesPath($trimTrailingSlash = false): string
     {
         $path = self::instance()->getDynamicFilesPath();
 
         return $trimTrailingSlash ? rtrim($path, '/') : $path;
     }
 
-    public function getDynamicFilesPath()
+    public function getDynamicFilesPath(): string
     {
         return $this->dynamicFilesPath;
+    }
+
+    public function getGoogleMapKey(): string
+    {
+        return $this->googleMapKey;
+    }
+
+    public function getMapQuestKey(): ?string
+    {
+        return $this->mapQuestKey;
     }
 
     public function getMinumumAge(): int
@@ -229,42 +211,42 @@ final class OcConfig extends ConfigReader
         return $this->minimumAge;
     }
 
-    public function isMeritBadgesEnabled()
+    public function isMeritBadgesEnabled(): bool
     {
         return $this->meritBadgesEnabled;
     }
 
-    public function getDbUser($admin = false)
+    public function getDbUser($admin = false): string
     {
         return $admin ? $this->dbAdminUser : $this->dbUser;
     }
 
-    public function getDbPass($admin = false)
+    public function getDbPass($admin = false): string
     {
         return $admin ? $this->dbAdminPass : $this->dbPass;
     }
 
-    public function getDbHost()
+    public function getDbHost(): string
     {
         return $this->dbHost;
     }
 
-    public function getDbName()
+    public function getDbName(): string
     {
         return $this->dbName;
     }
 
-    public static function getHeaderLogo()
+    public static function getHeaderLogo(): string
     {
         return self::instance()->headerLogo;
     }
 
-    public static function getNeedFindLimit()
+    public static function getNeedFindLimit(): int
     {
         return self::instance()->needFindLimit;
     }
 
-    public static function getNeedApproveLimit()
+    public static function getNeedApproveLimit(): int
     {
         return self::instance()->needApproveLimit;
     }
@@ -298,11 +280,11 @@ final class OcConfig extends ConfigReader
      */
     public function getLogfilterConfig(): array
     {
-        if (! $this->logfilterConfig) {
-            $this->logfilterConfig = self::getConfig('logfilter', 'logfilter');
+        if (! $this->logFilterConfig) {
+            $this->logFilterConfig = self::getConfig('logfilter', 'logfilter');
         }
 
-        return $this->logfilterConfig;
+        return $this->logFilterConfig;
     }
 
     /**

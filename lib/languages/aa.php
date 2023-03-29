@@ -2035,8 +2035,10 @@ $translations = [
     'ec_delete_wp' => 'crwdns7655:0crwdne7655:0',
     'mc_edit_geocache' => 'crwdns7656:0crwdne7656:0',
     'mc_by_founds' => 'crwdns7657:0crwdne7657:0',
+    'mc_by_not_founds' => 'crwdns33942:0crwdne33942:0',
     'mc_by_reco' => 'crwdns7658:0crwdne7658:0',
     'mc_by_gk' => 'crwdns7659:0crwdne7659:0',
+    'mc_by_watchers' => 'crwdns33944:0crwdne33944:0',
     'mc_by_visits' => 'crwdns7660:0crwdne7660:0',
     'ec_bike_set_msg' => 'crwdns7661:0[Bike]crwdnd7661:0[Boat]crwdne7661:0',
     'ec_walk_set_msg' => 'crwdns7662:0[Boat]crwdnd7662:0[Bike]crwdne7662:0',
@@ -3214,4 +3216,11 @@ $translations = [
     'at_day' => 'crwdns27595:0crwdne27595:0',
     'at_notinwinter' => 'crwdns27597:0crwdne27597:0',
     'at_allseasons' => 'crwdns27599:0crwdne27599:0',
+
+    'cache_approval_refresh' => 'crwdns33930:0crwdne33930:0',
+    'cache_approval_refresh_time' => 'crwdns33932:0crwdne33932:0',
+    'cache_approval_nonamed' => 'crwdns33934:0crwdne33934:0',
+    'cache_approval_no_caches' => 'crwdns33936:0crwdne33936:0',
+    'cache_approval_changed_time' => 'crwdns33938:0crwdne33938:0',
+    'cache_approval_cache_invalid' => 'crwdns33940:0%scrwdne33940:0',
 ];

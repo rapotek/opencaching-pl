@@ -2035,8 +2035,10 @@ $translations = [
     'ec_delete_wp' => 'Are you sure you want to delete this waypoint?',
     'mc_edit_geocache' => 'Edit cache',
     'mc_by_founds' => 'By finds',
+    'mc_by_not_founds' => 'By DNFs',
     'mc_by_reco' => 'By recommendations',
     'mc_by_gk' => 'By GeoKrety in',
+    'mc_by_watchers' => 'By watchers',
     'mc_by_visits' => 'By visitors',
     'ec_bike_set_msg' => 'Cache attribute [Bike] or [Boat] has been set. Did you mean to set the [Access only by walk] attribute?',
     'ec_walk_set_msg' => 'Cache attribute [Access only by walk] or [Boat] has been set. Did you mean to set the [Bike] attribute?',
@@ -3214,4 +3216,11 @@ $translations = [
     'at_day' => 'NOT recommended at night',
     'at_notinwinter' => 'NOT available during winter',
     'at_allseasons' => 'Available all seasons',
+
+    'cache_approval_refresh' => 'Refresh list',
+    'cache_approval_refresh_time' => 'Last update',
+    'cache_approval_nonamed' => 'no name',
+    'cache_approval_no_caches' => 'No geocaches waiting to be accepted',
+    'cache_approval_changed_time' => 'status changed',
+    'cache_approval_cache_invalid' => 'Cache "%s" is not valid for approval actions',
 ];
