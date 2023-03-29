@@ -1,6 +1,6 @@
 <?php
 /**
- * The'observers' array contains full paths of classes implementing interfaces
+ * The 'observers' array contains full paths of classes implementing interfaces
  * which extends '\src\Utils\Observer\OCObserverInterface'.
  * The class path can be either key or value of 'observers' array. If the class
  * path is a key and a value is an array, this value array is passed as a

@@ -3,6 +3,7 @@
 namespace src\Controllers;
 
 use RuntimeException;
+use src\Controllers\Core\ViewBaseController;
 use src\Models\CacheSet\CacheSet;
 use src\Models\ChunkModels\DynamicMap\CacheMarkerModel;
 use src\Models\ChunkModels\DynamicMap\CacheSetMarkerModel;
@@ -27,7 +28,7 @@ use src\Models\Voting\Election;
 use src\Utils\Database\OcDb;
 use src\Utils\DateTime\OcDateTime;
 use src\Utils\FileSystem\FileUploadMgr;
-use src\Utils\Notifier\OCNotifier;
+use src\Utils\Observer\OCNotifier;
 use src\Utils\Text\Formatter;
 use src\Utils\Text\UserInputFilter;
 use src\Utils\Uri\HttpCode;
@@ -35,7 +36,7 @@ use src\Utils\Uri\OcCookie;
 use src\Utils\Uri\SimpleRouter;
 use src\Utils\Uri\Uri;
 
-class TestController extends BaseController
+class TestController extends ViewBaseController
 {
     public function __construct()
     {
@@ -404,9 +405,15 @@ class TestController extends BaseController
         $this->view->buildView();
     }
 
+     
     /**
      * This is test of server-side actions for file upload with UploadChunk
      */
+    /*
+
+    Temporarily commented out, should be moved to a test controller inheriting
+    from ApiBaseController.
+
     public function uploadAjax()
     {
         // only logged users can test
@@ -432,6 +439,7 @@ class TestController extends BaseController
         // return to browser the list of files saved on server
         $this->ajaxJsonResponse($newFiles);
     }
+    */
 
     /**
      * This method test the cookie work
@@ -637,25 +645,21 @@ class TestController extends BaseController
         echo "- {$votersCount} voters generated<br>";
     }
 
+    /**
+     * Contains a simple example of OCNotifier usage
+     */
+    /*
+    
+    Uncomment only for testing on developement site. Do not use on production
+    where various observers can be registered
+
     public function notifyTest()
     {
-        $notifier = OCNotifier::getInstance();
         $currentCache = GeoCache::fromCacheIdFactory(51234);
         $serializedCache = serialize($currentCache);
-        $currentCache->updateStatus($currentCache->getStatus()/* == 1 ? 2: 1*/);
+        $currentCache->updateStatus($currentCache->getStatus() == 1 ? 2: 1);
         $originalCache = unserialize($serializedCache);
-        $notifier->notifyGeoCache($currentCache, $originalCache);
-
-        /*foreach ($arr as $observer => $options) {
-            if (is_int($observer) && is_string($options)) {
-                $observer = $options;
-                unset($options);
-            }
-            print("========<br>\n");
-            print_r($observer);
-            print("<br>\n--------<br>\n");
-            print_r($options ?? "--brak--");
-            print("<br>\n========<br>\n");
-        }*/
+        OCNotifier::notify($currentCache, $originalCache);
     }
+    */
 }
